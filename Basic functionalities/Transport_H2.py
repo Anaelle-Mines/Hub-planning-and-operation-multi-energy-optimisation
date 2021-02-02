@@ -25,7 +25,7 @@ from Functions.f_graphicalTools import *
 # endregion
 
 #region Model
-def Transport_H2(Parameters,T,d,D) :
+def Transport_H2(Parameters,T,d,D,r) :
 
     # Set variables
     Parameters.loc[Parameters['SYMBOLE'] == 'T', 'valeur'] = T
@@ -50,11 +50,33 @@ def Transport_H2(Parameters,T,d,D) :
     Parameters.loc[Parameters['SYMBOLE'] == 'Ip', 'valeur'] = Parameters.loc[Parameters['SYMBOLE'] == 'Cpipe', 'valeur'].iloc[0]*d*1000
     Parameters.loc[Parameters['SYMBOLE'] == 'Cp', 'valeur'] = Parameters.loc[Parameters['SYMBOLE'] == 'OPEXpipe', 'valeur'].iloc[0]*Parameters.loc[Parameters['SYMBOLE'] == 'Ip', 'valeur'].iloc[0]/100
 
+    Ltcam = Parameters.loc[Parameters['SYMBOLE'] == 'Ltcamion', 'valeur'].iloc[0]
+    Ltp = Parameters.loc[Parameters['SYMBOLE'] == 'Ltpipe', 'valeur'].iloc[0]
+
     Parameters = Parameters.set_index('SYMBOLE')
 
+    num_pipe=0
+    den_pipe=0
+    for i in np.arange(1,Ltp+1,1) :
+        if i==1 :
+            num_pipe=num_pipe+(Parameters['valeur']['Cp']+Parameters['valeur']['Ip'])/((1+r)**i)
+        else :
+            num_pipe = num_pipe + Parameters['valeur']['Cp'] / ((1 + r) ** i)
+        den_pipe=den_pipe+Parameters['valeur']['Vtot']*2.99/1000/((1+r)**i)
+    LCOE_pipe=num_pipe/den_pipe
+
+    num_cam=0
+    den_cam=0
+    for i in np.arange(1,Ltcam+1,1) :
+        if i==1 :
+            num_cam=num_cam+(Parameters['valeur']['Cc']+Parameters['valeur']['Ic'])/((1+r)**i)
+        else :
+            num_cam = num_cam + Parameters['valeur']['Cc'] / ((1 + r) ** i)
+        den_cam=den_cam+Parameters['valeur']['Vtot']*2.99/1000/((1+r)**i)
+    LCOE_cam=num_cam/den_cam
 
 
-    return
+    return LCOE_pipe,LCOE_cam
 
 #endregion
 
@@ -64,8 +86,9 @@ Parameters= pd.read_csv(InputFolder+'Transport'+'.csv',
                                 sep=',',decimal='.',skiprows=0)
 T=1
 d=100
-D=0.1
-Transport_H2(Parameters,T,d,D)
+D=0.3
+r=0.04
+Transport_H2(Parameters,T,d,D,r)
 
 
 #endregion
