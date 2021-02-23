@@ -76,19 +76,38 @@ def Transport_H2(Parameters,T,d,D,r) :
     LCOE_cam=num_cam/den_cam
 
 
-    return LCOE_pipe,LCOE_cam
+    return LCOE_pipe/LCOE_cam
 
 #endregion
 
 #region Loading arguments
 InputFolder = 'Data/Input/'
-Parameters= pd.read_csv(InputFolder+'Transport'+'.csv',
-                                sep=',',decimal='.',skiprows=0)
+Parameters= pd.read_csv(InputFolder+'Transport'+'.csv',sep=',',decimal='.',skiprows=0)
+
 T=1
-d=100
-D=0.3
 r=0.04
-Transport_H2(Parameters,T,d,D,r)
+
+d_list=[1,10,20,30,50,75,100,125,150,175,200] #Distance en km
+D_list=[0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.6,0.7,0.8,0.9,1] #Diamètre pipe en m
+Q_list=[np.pi*x**2/4*30000 for x in D_list] #Débit H2 en m3(N)/h
+alpha_list=[]
+for D in D_list :
+    for d in d_list :
+        alpha=Transport_H2(Parameters,T,d,D,r)
+        if alpha>=1 :
+            alpha_list.append(1)
+        else :
+            alpha_list.append(0)
+
+alpha_matrice=np.zeros([11,14])
+for i in np.arange(0,11,1) :
+    alpha_matrice[i,:]=alpha_list[14*i:14*(i+1)]
+
+alpha_df=pd.DataFrame(alpha_matrice,index=d_list,columns=Q_list)
+
+fig = go.Figure(data=go.Heatmap(z=alpha_df,x=Q_list,y=d_list))
+fig.update_layout(title='LCOE_pipe/LCOE_camion',xaxis_title='Débit de H2 (Nm3/h)',yaxis_title='Distance (km)')
+plotly.offline.plot(fig, filename='Abaque transport.html')
 
 
 #endregion
