@@ -9,6 +9,28 @@ import pandas as pd
 import mosek
 from Functions.f_optimization import *
 
+def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],InputFolder = 'Data/Input/',Zones = "FR",year = 2013):
+
+    #### reading CSV files
+    areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) + '_' + str(Zones) + '.csv',
+                                  sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "RESSOURCES"])
+    availabilityFactor = pd.read_csv(InputFolder + 'availabilityFactor' + str(year) + '_' + str(Zones) + '.csv',
+                                     sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "TECHNOLOGIES"])
+    TechParameters = pd.read_csv(InputFolder + 'Planing-RAMP2_TECHNOLOGIES.csv', sep=',', decimal='.', skiprows=0,
+                                 comment="#").set_index(["TECHNOLOGIES"])
+    conversionFactor = pd.read_csv(InputFolder + 'Ressources_conversionFactors.csv', sep=',', decimal='.', skiprows=0,
+                                   comment="#").set_index(["RESSOURCES", "TECHNOLOGIES"])
+    ResParameters = pd.read_csv(InputFolder + 'Ressources_set.csv', sep=',', decimal='.', skiprows=0,
+                                comment="#").set_index(["RESSOURCES"])
+
+    #### Selection of subset
+    availabilityFactor = availabilityFactor.loc[(slice(None), Selected_TECHNOLOGIES), :]
+    conversionFactor = conversionFactor.loc[(slice(None), Selected_TECHNOLOGIES), :]
+    TechParameters = TechParameters.loc[Selected_TECHNOLOGIES, :]
+    TechParameters.loc["OldNuke", 'RampConstraintMoins'] = 0.01  ## a bit strong to put in light the effect
+    TechParameters.loc["OldNuke", 'RampConstraintPlus'] = 0.02  ## a bit strong to put in light the effect
+    return areaConsumption,availabilityFactor,TechParameters,conversionFactor,ResParameters
+
 def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption, availabilityFactor, TechParameters, ResParameters,
                                                 conversionFactor, isAbstract=False):
 
@@ -68,11 +90,11 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
             exec("model." + COLNAME + " = Param(model.TECHNOLOGIES, default=0," +
                  "initialize=TechParameters." + COLNAME + ".squeeze().to_dict())")
     ## manière générique d'écrire pour toutes les colomnes COL de TechParameters quelque chose comme
-    # model.COLNAME =          Param(model.TECHNOLOGIES, domain=NonNegativeReals,default=0,
-    #                                  initialize=TechParameters.set_index([ "TECHNOLOGIES"]).COLNAME.squeeze().to_dict())
+    #    model.COLNAME =          Param(model.TECHNOLOGIES, domain=NonNegativeReals,default=0,
+    #                                 initialize=TechParameters.COLNAME.squeeze().to_dict())
     for COLNAME in ResParameters:
         if COLNAME not in ["RESSOURCES"]:  ### each column in ResParameters will be a parameter
-            exec("model." + COLNAME + " = Param(model.RESSOURCES, domain=Reals,default=0," +
+            exec("model." + COLNAME + " = Param(model.RESSOURCES, default=0," +
                  "initialize=ResParameters." + COLNAME + ".squeeze().to_dict())")
 
     ################
@@ -216,3 +238,307 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
         model.rampCtrMoins = Constraint(model.TIMESTAMP_MinusOne, model.TECHNOLOGIES, rule=rampCtrMoins_rule)
 
     return model;
+
+
+def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
+                                                conversionFactor,StorageParameters,tol,n,solver="Mosek"):
+
+    model = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption, availabilityFactor,TechParameters, ResParameters, conversionFactor)
+    opt = SolverFactory(solver)
+
+    ##### Loop
+    PrixTotal = {}
+    Consommation = {}
+    LMultipliers = {}
+    DeltaPrix = {}
+    Deltazz = {}
+    CostFunction = {}
+    TotalCols = {}
+    zz = {}
+    # p_max_out=100.; p_max_in=100.; c_max=10.;
+
+    areaConsumption["NewConsumption"] = areaConsumption["areaConsumption"]
+
+    nbTime = len(areaConsumption["areaConsumption"])
+    cpt = 0
+    for i in model.areaConsumption:
+        if i[1] == 'electricity':
+            model.areaConsumption[i] = areaConsumption.NewConsumption[i]
+
+    DeltaPrix_ = tol + 1
+    while ((DeltaPrix_ > tol) & (n > cpt)):
+        print(cpt)
+        if (cpt == 0):
+            zz[cpt] = [0] * nbTime
+        else:
+            zz[cpt] = areaConsumption["Storage"].tolist()
+
+        # if solver=="mosek" :
+        #    results = opt.solve(model, options= {"dparam.optimizer_max_time":  100.0, "iparam.outlev" : 2,"iparam.optimizer":     mosek.optimizertype.primal_simplex},tee=True)
+        # else :
+        # if (solver == 'cplex') | (solver == 'cbc'):
+        #   results = opt.solve(model, warmstart=True)
+        # else:
+        results = opt.solve(model)
+        Constraints = getConstraintsDual_panda(model)
+        # if solver=='cbc':
+        #    Variables = getVariables_panda(model)['energy'].set_index(['TIMESTAMP','TECHNOLOGIES'])
+        #    for i in model.energy:  model.energy[i] = Variables.energy[i]
+
+        TotalCols[cpt] = getVariables_panda_indexed(model)['powerCosts'].sum()[1] + \
+                         getVariables_panda_indexed(model)['importCosts'].sum()[1]
+        Prix = Constraints["energyCtr"].assign(Prix=lambda x: x.energyCtr).Prix.to_numpy()
+        Prix[Prix <= 0] = 0.0000000001
+        valueAtZero = TotalCols[cpt] - Prix * zz[cpt]
+        tmpCost = GenCostFunctionFromMarketPrices_dict(Prix, r_in=StorageParameters['efficiency_in'],
+                                                       r_out=StorageParameters['efficiency_out'],
+                                                       valueAtZero=valueAtZero)
+        if (cpt == 0):
+            CostFunction[cpt] = GenCostFunctionFromMarketPrices(Prix, r_in=StorageParameters['efficiency_in'],
+                                                                r_out=StorageParameters['efficiency_out'],
+                                                                valueAtZero=valueAtZero)
+        else:
+            tmpCost = GenCostFunctionFromMarketPrices_dict(Prix, r_in=StorageParameters['efficiency_in'],
+                                                           r_out=StorageParameters['efficiency_out'],
+                                                           valueAtZero=valueAtZero)
+            tmpCost2 = CostFunction[cpt - 1]
+            if StorageParameters['efficiency_in'] * StorageParameters['efficiency_out'] == 1:
+                tmpCost2.Maxf_1Breaks_withO(tmpCost['S1'], tmpCost['B1'], tmpCost[
+                    'f0'])
+            else:
+                tmpCost2.Maxf_2Breaks_withO(tmpCost['S1'], tmpCost['S2'], tmpCost['B1'], tmpCost['B2'], tmpCost[
+                    'f0'])  ### etape clé, il faut bien comprendre ici l'utilisation du max de deux fonction de coût
+            CostFunction[cpt] = tmpCost2
+        LMultipliers[cpt] = Prix
+        if cpt > 0:
+            DeltaPrix[cpt] = sum(abs(LMultipliers[cpt] - LMultipliers[cpt - 1])) / sum(abs(LMultipliers[cpt]))
+            if sum(abs(pd.DataFrame(zz[cpt]))) > 0:
+                Deltazz[cpt] = sum(abs(pd.DataFrame(zz[cpt]) - pd.DataFrame(zz[cpt - 1]))) / sum(
+                    abs(pd.DataFrame(zz[cpt])))
+            else:
+                Deltazz[cpt] = 0
+            DeltaPrix_ = DeltaPrix[cpt]
+
+        areaConsumption.loc[:, "Storage"] = CostFunction[cpt].OptimMargInt(
+            [-StorageParameters['p_max'] / StorageParameters['efficiency_out']] * nbTime,
+            [StorageParameters['p_max'] * StorageParameters['efficiency_in']] * nbTime,
+            [0] * nbTime,
+            [StorageParameters['c_max']] * nbTime)
+
+        areaConsumption.loc[areaConsumption.loc[:, "Storage"] > 0, "Storage"] = areaConsumption.loc[
+                                                                                    areaConsumption.loc[:,
+                                                                                    "Storage"] > 0, "Storage"] / \
+                                                                                StorageParameters['efficiency_in']
+        areaConsumption.loc[areaConsumption.loc[:, "Storage"] < 0, "Storage"] = areaConsumption.loc[
+                                                                                    areaConsumption.loc[:,
+                                                                                    "Storage"] < 0, "Storage"] * \
+                                                                                StorageParameters['efficiency_out']
+        areaConsumption.loc[:, "NewConsumption"] = areaConsumption.loc[:, "areaConsumption"] + areaConsumption.loc[:,
+                                                                                               "Storage"]
+        for i in model.areaConsumption:
+            if i[1] == 'electricity':
+                model.areaConsumption[i] = areaConsumption.NewConsumption[i]
+        cpt = cpt + 1
+
+    results = opt.solve(model)
+    stats = {"DeltaPrix": DeltaPrix, "Deltazz": Deltazz}
+    Variables = getVariables_panda(model)  #### obtain optimized variables in panda form
+
+    return results,stats,Variables
+
+def Boucle_SensibiliteAlphaSimple(areaConsumption, availabilityFactor, TechParameters, ResParameters,
+                                                conversionFactor,variation_CAPEX_H2,variation_prix_GazNat) :
+    CAPEX_electrolysis = TechParameters['capacityCost']['electrolysis']
+    CAPEX_pac = TechParameters['capacityCost']['pac']
+    Prix_gaz = ResParameters['importCost']['gaz']
+    alpha_list = []
+    Prod_EnR_list = []
+    Prod_elec_list = []
+    Prod_gaz_list = []
+    Prod_H2_list = []
+    Prod_Nuke_list = []
+    Conso_gaz_list = []
+    Capa_gaz_list = []
+    Capa_EnR_list = []
+    Capa_electrolysis_list = []
+    Capa_PAC_list = []
+
+    for var2 in variation_prix_GazNat:
+        ResParameters['importCost']['gaz'] = var2
+        for var1 in variation_CAPEX_H2:
+            TechParameters['capacityCost']['electrolysis'] = CAPEX_electrolysis * (1 + var1)
+            TechParameters['capacityCost']['pac'] = CAPEX_pac * (1 + var1)
+            model = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption, availabilityFactor,
+                                                                                TechParameters, ResParameters,
+                                                                                conversionFactor)
+            solver = 'mosek'
+            opt = SolverFactory(solver)
+            results = opt.solve(model)
+            Variables = getVariables_panda_indexed(model)
+            ener = Variables['power'].pivot(index="TIMESTAMP", columns='TECHNOLOGIES', values='power')
+            ener = ener.sum(axis=0)
+            ener = pd.DataFrame(ener, columns={'energy'})
+            alpha = ener.loc['pac'] / (ener.loc['CCG'] + ener.loc['TAC'] + ener.loc['pac'])
+            alpha_list = alpha_list + [alpha['energy']]
+            Prod_elec_list = Prod_elec_list + [ener.sum(axis=0)['energy'] / 1000000]
+            Prod_EnR_list = Prod_EnR_list + [(ener.loc['Solar']['energy'] + ener.loc['HydroReservoir']['energy'] +
+                                              ener.loc['HydroRiver']['energy'] + ener.loc['WindOnShore'][
+                                                  'energy']) / 1000000]
+            Prod_gaz_list = Prod_gaz_list + [(ener.loc['CCG']['energy'] + ener.loc['TAC']['energy']) / 1000000]
+            Prod_H2_list = Prod_H2_list + [ener.loc['pac']['energy'] / 1000000]
+            Prod_Nuke_list = Prod_Nuke_list + [ener.loc['OldNuke']['energy'] / 1000000]
+            Conso_gaz_list = Conso_gaz_list + [
+                Variables['importation'].loc[Variables['importation']['RESSOURCES'] == 'gaz'].sum(axis=0)[
+                    'importation'] / 1000000]
+            capa = Variables['capacity'].set_index('TECHNOLOGIES')
+            Capa_gaz_list = Capa_gaz_list + [(capa.loc['TAC']['capacity'] + capa.loc['CCG']['capacity']) / 1000]
+            Capa_EnR_list = Capa_EnR_list + [(capa.loc['Solar']['capacity'] + capa.loc['HydroReservoir']['capacity'] +
+                                              capa.loc['HydroRiver']['capacity'] + capa.loc['WindOnShore'][
+                                                  'capacity']) / 1000]
+            Capa_electrolysis_list = Capa_electrolysis_list + [capa.loc['electrolysis']['capacity'] / 1000]
+            Capa_PAC_list = Capa_PAC_list + [capa.loc['pac']['capacity'] / 1000]
+            print(alpha_list)
+
+    ### récupérer dataframe à partir de la liste des résultats
+
+    PrixGaz_list = []
+    CAPEX_list = []
+    CAPEX_H2 = []
+    for var1 in variation_CAPEX_H2:
+        CAPEX_H2.append(round(CAPEX_electrolysis * (1 + var1) + CAPEX_pac * (1 + var1), 1))
+
+    for i in variation_prix_GazNat:
+        for j in CAPEX_H2:
+            PrixGaz_list.append(i)
+            CAPEX_list.append(j)
+
+    alpha_df = pd.DataFrame()
+    alpha_df['PrixGaz'] = PrixGaz_list
+    alpha_df['Capex'] = CAPEX_list
+    alpha_df['value'] = alpha_list
+    alpha_df['Prod_elec'] = Prod_elec_list
+    alpha_df['Prod_EnR'] = Prod_EnR_list
+    alpha_df['Prod_gaz'] = Prod_gaz_list
+    alpha_df['Prod_H2'] = Prod_H2_list
+    alpha_df['Prod_Nuke'] = Prod_Nuke_list
+    alpha_df['Conso_gaz'] = Conso_gaz_list
+    alpha_df['Capa_gaz'] = Capa_gaz_list
+    alpha_df['Capa_EnR'] = Capa_EnR_list
+    alpha_df['Capa_electrolysis'] = Capa_electrolysis_list
+    alpha_df['Capa_PAC'] = Capa_PAC_list
+
+    return alpha_df
+
+
+def SensibiliteAlphaSimple(Variations, solver = 'mosek') :
+
+    VariationPrixGaz = Variations["variation_prix_GazNat"]
+    VariationCAPEX = Variations["variation_CAPEX_H2"]
+
+    areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
+
+    ResParameters.loc['gaz','importCost'] = VariationPrixGaz.squeeze()
+    TechParameters.loc['electrolysis','capacityCost'] = TechParameters.loc['electrolysis','capacityCost'] * (1 + VariationCAPEX.squeeze())
+    TechParameters.loc['pac','capacityCost'] = TechParameters.loc['pac','capacityCost'] * (1 + VariationCAPEX.squeeze())
+    model = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption, availabilityFactor,
+                                                                        TechParameters, ResParameters,
+                                                                        conversionFactor)
+    #Resultat= pd.DataFrame()
+    opt = SolverFactory(solver)
+    results = opt.solve(model)
+    Variables = getVariables_panda_indexed(model)
+
+    Production = (Variables['power'].groupby('TECHNOLOGIES').agg({"power" : "sum"})/(10**6)).rename_axis(None, axis = 0).transpose()
+    Capacity = (Variables['capacity'].set_index('TECHNOLOGIES') / (10 ** 3)).rename_axis(None, axis=0).transpose()
+    Importation = Variables['importation'].groupby('RESSOURCES').agg({"importation" : "sum"})/(10**6)
+    alpha = Production.pac['power'] / (Production.CCG['power'] + Production.TAC['power'] + Production.pac['power'])
+
+    Capacity.columns=[x+'_Capa' for x in list(Capacity.columns)]
+    Capacity.reset_index(drop=True,inplace=True)
+    Production.columns = [x + '_Prod' for x in list(Production.columns)]
+    Production.reset_index(drop=True, inplace=True)
+    Resultat=Capacity.join(Production)
+    Resultat[['gaz_Conso','alpha','Capex','PrixGaz']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze()]
+
+    return Resultat
+
+
+
+def Boucle_SensibiliteAlphaSimple_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
+                                                conversionFactor,variation_CAPEX_H2,variation_prix_GazNat,StorageParameters,tol,n) :
+
+    CAPEX_electrolysis = TechParameters['capacityCost']['electrolysis']
+    CAPEX_pac = TechParameters['capacityCost']['pac']
+    Prix_gaz = ResParameters['importCost']['gaz']
+    alpha_list = []
+    Prod_EnR_list = []
+    Prod_elec_list = []
+    Prod_gaz_list = []
+    Prod_H2_list = []
+    Prod_Nuke_list = []
+    Conso_gaz_list = []
+    Capa_gaz_list = []
+    Capa_EnR_list = []
+    Capa_electrolysis_list = []
+    Capa_PAC_list = []
+
+    for var2 in variation_prix_GazNat:
+        ResParameters['importCost']['gaz'] = var2
+        for var1 in variation_CAPEX_H2:
+            TechParameters['capacityCost']['electrolysis'] = CAPEX_electrolysis * (1 + var1)
+            TechParameters['capacityCost']['pac'] = CAPEX_pac * (1 + var1)
+            Variables = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
+                                                conversionFactor,StorageParameters,tol,n)[2]
+            ener = Variables['power'].pivot(index="TIMESTAMP", columns='TECHNOLOGIES', values='power')
+            ener = ener.sum(axis=0)
+            ener = pd.DataFrame(ener, columns={'energy'})
+            alpha = ener.loc['pac'] / (ener.loc['CCG'] + ener.loc['TAC'] + ener.loc['pac'])
+            alpha_list = alpha_list + [alpha['energy']]
+            Prod_elec_list = Prod_elec_list + [ener.sum(axis=0)['energy'] / 1000000]
+            Prod_EnR_list = Prod_EnR_list + [(ener.loc['Solar']['energy'] + ener.loc['HydroReservoir']['energy'] +
+                                              ener.loc['HydroRiver']['energy'] + ener.loc['WindOnShore'][
+                                                  'energy']) / 1000000]
+            Prod_gaz_list = Prod_gaz_list + [(ener.loc['CCG']['energy'] + ener.loc['TAC']['energy']) / 1000000]
+            Prod_H2_list = Prod_H2_list + [ener.loc['pac']['energy'] / 1000000]
+            Prod_Nuke_list = Prod_Nuke_list + [ener.loc['OldNuke']['energy'] / 1000000]
+            Conso_gaz_list = Conso_gaz_list + [
+                Variables['importation'].loc[Variables['importation']['RESSOURCES'] == 'gaz'].sum(axis=0)[
+                    'importation'] / 1000000]
+            capa = Variables['capacity'].set_index('TECHNOLOGIES')
+            Capa_gaz_list = Capa_gaz_list + [(capa.loc['TAC']['capacity'] + capa.loc['CCG']['capacity']) / 1000]
+            Capa_EnR_list = Capa_EnR_list + [(capa.loc['Solar']['capacity'] + capa.loc['HydroReservoir']['capacity'] +
+                                              capa.loc['HydroRiver']['capacity'] + capa.loc['WindOnShore'][
+                                                  'capacity']) / 1000]
+            Capa_electrolysis_list = Capa_electrolysis_list + [capa.loc['electrolysis']['capacity'] / 1000]
+            Capa_PAC_list = Capa_PAC_list + [capa.loc['pac']['capacity'] / 1000]
+            print(alpha_list)
+
+    ### récupérer dataframe à partir de la liste des résultats
+
+    PrixGaz_list = []
+    CAPEX_list = []
+    CAPEX_H2 = []
+    for var1 in variation_CAPEX_H2:
+        CAPEX_H2.append(round(CAPEX_electrolysis * (1 + var1) + CAPEX_pac * (1 + var1), 1))
+
+    for i in variation_prix_GazNat:
+        for j in CAPEX_H2:
+            PrixGaz_list.append(i)
+            CAPEX_list.append(j)
+
+    alpha_df = pd.DataFrame()
+    alpha_df['PrixGaz'] = PrixGaz_list
+    alpha_df['Capex'] = CAPEX_list
+    alpha_df['value'] = alpha_list
+    alpha_df['Prod_elec'] = Prod_elec_list
+    alpha_df['Prod_EnR'] = Prod_EnR_list
+    alpha_df['Prod_gaz'] = Prod_gaz_list
+    alpha_df['Prod_H2'] = Prod_H2_list
+    alpha_df['Prod_Nuke'] = Prod_Nuke_list
+    alpha_df['Conso_gaz'] = Conso_gaz_list
+    alpha_df['Capa_gaz'] = Capa_gaz_list
+    alpha_df['Capa_EnR'] = Capa_EnR_list
+    alpha_df['Capa_electrolysis'] = Capa_electrolysis_list
+    alpha_df['Capa_PAC'] = Capa_PAC_list
+
+    return alpha_df
