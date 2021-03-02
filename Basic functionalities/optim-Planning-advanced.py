@@ -162,6 +162,28 @@ alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlphaSim
 alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
+#region Sensibilité Alpha Parallel with storage, solving and loading results
+
+def applyParallel(dfGrouped, func):
+    retLst = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(func)(group) for name, group in dfGrouped)
+    return pd.concat(retLst)
+
+def expand_grid(dictionary):
+   return pd.DataFrame([row for row in product(*dictionary.values())],
+                       columns=dictionary.keys())
+
+
+#"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5]
+#"variation_prix_GazNat": [10, 20, 30,40,50,60,70,80,90,100]
+
+Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ],
+            "variation_prix_GazNat": [10, 20]})
+
+alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlpha_WithStorage)
+
+alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
+#endregion
+
 #region Construction pandas avec toutes les matrices alpha
 Scenarios=['base','57','35']
 list_df=[]
@@ -232,11 +254,17 @@ alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans u
 #endregion
 
 #region Analyse
-alpha_df=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
-alpha_df.drop(columns='Unnamed: 0',inplace=True)
+MyData=pd.read_csv('Alpha_matrice_parallel.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+MyData.drop(columns='Unnamed: 0',inplace=True)
+MyData = MyData[MyData.alpha > 0.0001]
+Rdeux,Predictions,Parameters=regression(MyData)
+MyData.loc[:,"PredictionAlpha"] =Predictions['simple']
+Param=Parameters['simple']
+def reg_alpha0(reg,PrixGaz):
+    Capex=-(reg['const']+reg['PrixGaz']*PrixGaz)/reg['Capex']
+    return Capex
+
+PrixGaz_list=np.arange(0,151,1)
+Capex_list=reg_alpha0(Param,PrixGaz_list)
 
 #endregion
-
-compar=pd.read_csv('Alpha_matrice_35.csv',sep=',',decimal='.',skiprows=0)
-compar.drop(columns='Unnamed: 0',inplace=True)
-alpha=alpha_df.loc[('None','alpha')]

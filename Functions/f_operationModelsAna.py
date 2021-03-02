@@ -241,7 +241,7 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
 
 
 def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
-                                                conversionFactor,StorageParameters,tol,n,solver="Mosek"):
+                                                conversionFactor,StorageParameters,tol,n,solver="mosek"):
 
     model = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption, availabilityFactor,TechParameters, ResParameters, conversionFactor)
     opt = SolverFactory(solver)
@@ -542,3 +542,33 @@ def Boucle_SensibiliteAlphaSimple_With1Storage(areaConsumption, availabilityFact
     alpha_df['Capa_PAC'] = Capa_PAC_list
 
     return alpha_df
+
+def SensibiliteAlpha_WithStorage(Variations) :
+
+    VariationPrixGaz = Variations["variation_prix_GazNat"]
+    VariationCAPEX = Variations["variation_CAPEX_H2"]
+
+    areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
+    StorageParameters = {"p_max": 5000, "c_max": 50000, "efficiency_in": 0.9, "efficiency_out": 0.9}
+    tol = exp(-4)
+    n = 10
+
+    ResParameters.loc['gaz','importCost'] = VariationPrixGaz.squeeze()
+    TechParameters.loc['electrolysis','capacityCost'] = TechParameters.loc['electrolysis','capacityCost'] * (1 + VariationCAPEX.squeeze())
+    TechParameters.loc['pac','capacityCost'] = TechParameters.loc['pac','capacityCost'] * (1 + VariationCAPEX.squeeze())
+    results,Stats,Variables = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
+                                                conversionFactor,StorageParameters,tol,n)
+
+    Production = (Variables['power'].groupby('TECHNOLOGIES').agg({"power" : "sum"})/(10**6)).rename_axis(None, axis = 0).transpose()
+    Capacity = (Variables['capacity'].set_index('TECHNOLOGIES') / (10 ** 3)).rename_axis(None, axis=0).transpose()
+    Importation = Variables['importation'].groupby('RESSOURCES').agg({"importation" : "sum"})/(10**6)
+    alpha = Production.pac['power'] / (Production.CCG['power'] + Production.TAC['power'] + Production.pac['power'])
+
+    Capacity.columns=[x+'_Capa' for x in list(Capacity.columns)]
+    Capacity.reset_index(drop=True,inplace=True)
+    Production.columns = [x + '_Prod' for x in list(Production.columns)]
+    Production.reset_index(drop=True, inplace=True)
+    Resultat=Capacity.join(Production)
+    Resultat[['gaz_Conso','alpha','Capex','PrixGaz']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze()]
+
+    return Resultat

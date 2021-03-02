@@ -17,7 +17,7 @@ def regression(MyData):
     MyData.loc[:, "logCapex"] = np.log(MyData["Capex"])
     MyData.loc[:, "logPrixGaz"] = np.log(MyData["PrixGaz"])
     MyData.loc[:, "logCross"] = np.log(MyData["Capex"]) * np.log(MyData["PrixGaz"])
-    MyData.loc[:, "logSimulation"] = -np.log(MyData["Simulation"])
+    MyData.loc[:, "logAlpha"] = -np.log(MyData["alpha"])
 
     Models = {"simple": ["PrixGaz", "Capex"],
               "RatioCapexPrixGaz": ["Ratio1"],
@@ -50,14 +50,14 @@ def regression(MyData):
     Parameters = {}
 
     for model in Models.keys():
-        My_model = sm.OLS(MyData["Simulation"], sm.add_constant(MyData[Models[model]]))
+        My_model = sm.OLS(MyData["alpha"], sm.add_constant(MyData[Models[model]]))
         results = My_model.fit()
         Rdeux[model] = results.rsquared
         Predictions[model] = results.predict()
         Parameters[model] = results.params
 
     # log/log
-    My_model = sm.OLS(MyData["logSimulation"], sm.add_constant(MyData[Models["logSimple"]]))
+    My_model = sm.OLS(MyData["logAlpha"], sm.add_constant(MyData[Models["logSimple"]]))
     results = My_model.fit()
     Rdeux['log_log'] = results.rsquared
     Predictions['log_log'] = results.predict()
