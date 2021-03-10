@@ -159,7 +159,7 @@ Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1
 
 alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlphaSimple)
 
-alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
+alpha_df.to_csv('Alpha_matrice_24-100-S.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
 #region Sensibilité Alpha Parallel with storage, solving and loading results
@@ -185,7 +185,7 @@ alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans u
 #endregion
 
 #region Construction pandas avec toutes les matrices alpha
-Scenarios=['base','57','35']
+Scenarios=['base','50-50-S','50-100-S','50-100-A','50-150-S','37-50-S','37-100-S','37-100-A','37-150-S','24-50-S','24-100-S','24-100-A','24-150-S','11-50-S','11-100-S','11-100-A','11-150-S','0-50-S','0-100-S','0-100-A','0-150-S']
 list_df=[]
 
 for s in Scenarios :
@@ -254,17 +254,37 @@ alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans u
 #endregion
 
 #region Analyse
-MyData=pd.read_csv('Alpha_matrice_parallel.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
-MyData.drop(columns='Unnamed: 0',inplace=True)
-MyData = MyData[MyData.alpha > 0.0001]
-Rdeux,Predictions,Parameters=regression(MyData)
-MyData.loc[:,"PredictionAlpha"] =Predictions['simple']
-Param=Parameters['simple']
 def reg_alpha0(reg,PrixGaz):
     Capex=-(reg['const']+reg['PrixGaz']*PrixGaz)/reg['Capex']
     return Capex
 
-PrixGaz_list=np.arange(0,151,1)
-Capex_list=reg_alpha0(Param,PrixGaz_list)
+Scenarios=[['base'],['50-50-S','50-100-S','50-100-A','50-150-S'],['37-50-S','37-100-S','37-100-A','37-150-S'],['24-50-S','24-100-S','24-100-A','24-150-S'],['11-50-S','11-100-S','11-100-A','11-150-S'],['0-50-S','0-100-S','0-100-A','0-150-S']]
+
+Alpha_melted=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Alpha_melted.drop(columns='Unnamed: 0',inplace=True)
+Alpha_melted = Alpha_melted[Alpha_melted.alpha > 0.0001]
+
+df=pd.DataFrame(np.arange(0,151,1),columns={'PrixGaz'})
+
+fig1=go.Figure()
+style=[[(37, 253, 233),(44, 117, 255),(22, 184, 78),(237, 0, 0),(243, 214, 23),(223, 115, 255)],['lines','markers','markers+lines','lines'],[1,1,1,0.3]]
+
+c1=0
+
+for s_list in Scenarios :
+    c2=0
+    for s in s_list :
+        Rdeux,Predictions,Parameters=regression(Alpha_melted.loc[Alpha_melted['scenario']==s])
+        Alpha_melted.loc[Alpha_melted['scenario']==s,"PredictionAlpha"] =Predictions['simple']
+        Param=Parameters['simple']
+        df.loc[:,s] = reg_alpha0(Param, df.PrixGaz)
+        fig1=fig1.add_trace(go.Scatter(x=df.PrixGaz,y=df[s],marker_color='rgb'+str(style[0][c1]),mode=style[1][c2],opacity=style[2][c2],name=s))
+        c2=c2+1
+    c1=c1+1
+
+fig1=fig1.update_layout(title='Equations Alpha=0 pour chaque scnéario',xaxis_title='Prix du gaz (€/MWh)', yaxis_title='Capex H2 (€/MWh/an)')
+plotly.offline.plot(fig1, filename='Alpha=0.html')
+
+
 
 #endregion
