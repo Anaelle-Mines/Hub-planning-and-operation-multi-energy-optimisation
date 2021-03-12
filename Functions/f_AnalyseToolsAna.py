@@ -1,5 +1,6 @@
 import statsmodels.api as sm
 import numpy as np
+import pandas as pd
 
 def regression(MyData):
 
@@ -64,3 +65,18 @@ def regression(MyData):
     Parameters['log_log'] = results.params
 
     return Rdeux,Predictions,Parameters
+
+def get_Clean_Prices(year=2013,sorted=True,InputFolder='Data/input/'):
+    Market_Prices = pd.read_csv(InputFolder + 'EuropeanMarket_Prices_UTC_2007_2017.csv', sep=',', decimal='.',
+                                skiprows=0)
+    Market_Prices.Dates = pd.to_datetime(Market_Prices.Dates)
+    Market_Prices.set_index(["Dates"], inplace=True)
+    #### remove nan values at time t by using value at time t - 1
+    Market_Prices_year = Market_Prices[Market_Prices.index.year == year]
+    prectime = Market_Prices_year.index[0]
+    for t in Market_Prices_year.index:
+        if np.isnan(Market_Prices_year.loc[t, "Prices"]): Market_Prices_year.loc[t, "Prices"] = Market_Prices_year.loc[
+            prectime, "Prices"]
+        prectime = t
+    if sorted: Market_Prices_year= Market_Prices_year.sort_values(by="Prices")
+    return Market_Prices_year
