@@ -31,11 +31,11 @@ DureeFonctionnement = 85000 # nombre heures
 Market_Prices_year = get_Clean_Prices(year=2013,sorted=True)
 Market_Prices_year.insert(0, 'NbHours', range(1, len(Market_Prices_year)+1))
 Resultats = pd.DataFrame(None)
-AverageShiftVals =[0]
+AverageShiftVals =[-4,-2,0,2,4,6]
 HomotheticVals = [1/2,1,3/2,4/2]
 AcutalisationVals= [0.04,0.06,0.08]
-DureeVieMaxVals = [15] # [15,20,25]
-CAPEXVals = [1000,600,200]
+DureeVieMaxVals = [15,20,25]
+CAPEXVals = [1000,800,600,400,200]
 for Actualisation in AcutalisationVals:
     for DureeVieMax in DureeVieMaxVals:
         for CAPEX in CAPEXVals:
@@ -64,7 +64,8 @@ for Actualisation in AcutalisationVals:
 
 
 indexes = Resultats.CoutTotal<250
-fig = px.line(Resultats[indexes], x="NbHours", y=["CoutTotal","CoutMarginal"], color='Actualisation',facet_col="EcartTypePrixElec",facet_row="CAPEX",
+fig = px.line(Resultats[indexes], x="NbHours", y=["CoutTotal","CoutMarginal"],
+              color='Actualisation',facet_col="EcartTypePrixElec",facet_row="CAPEX",
               labels={
                     "value": "Prix H2 [€/MWh]",
                     "NbHours" : "Nb d'heures de fonctionnement"})
@@ -72,3 +73,21 @@ fig = px.line(Resultats[indexes], x="NbHours", y=["CoutTotal","CoutMarginal"], c
 plotly.offline.plot(fig, filename='tmp.html')
 
 
+df=Resultats[(Resultats.NbHours.isin([2000,4000,8000]))&(Resultats.DureeVieMax==15)&(Resultats.Actualisation==0.04)]
+df.NbHours=df.NbHours.astype("category")
+fig = px.line(df, x="CAPEX", y="CoutTotal", color="NbHours", hover_data=["Actualisation", "DureeVieMax",  "CAPEX","EcartTypePrixElec",  "AverageShift"],
+                 facet_col="EcartTypePrixElec",facet_row="AverageShift",
+              labels={
+                  "CoutTotal": "Coût [€/MWh]",
+                  "CAPEX": "CAPEX [€/kW]"}
+)
+plotly.offline.plot(fig, filename='tmp.html')
+
+
+Resultats_synth=Resultats[Resultats.NbHours.isin([2000,4000,8000])].pivot(columns=['NbHours'],values = ["CoutTotal"],
+                                                                          index = ["Actualisation", "DureeVieMax",  "CAPEX",
+                                                                                   "EcartTypePrixElec",  "AverageShift"])
+Resultats_synth.columns = ["_".join((i,str(j))) for i,j in Resultats_synth.columns]
+Resultats_synth["Diff4000_8000"] = Resultats_synth["CoutTotal_4000"]-Resultats_synth["CoutTotal_8000"]
+Resultats_synth["Diff2000_8000"] = Resultats_synth["CoutTotal_2000"]-Resultats_synth["CoutTotal_8000"]
+Resultats_synth["Diff2000_8000"] = Resultats_synth["CoutTotal_2000"]-Resultats_synth["CoutTotal_8000"]
