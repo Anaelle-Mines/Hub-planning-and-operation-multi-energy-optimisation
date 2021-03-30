@@ -159,7 +159,7 @@ Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1
 
 alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlphaSimple)
 
-alpha_df.to_csv('Alpha_matrice_24-100-S.csv')  # enregistrement de la matrice dans un csv
+alpha_df.to_csv('Alpha_matrice_24-100-S-H2.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
 #region Sensibilité Alpha Parallel with storage, solving and loading results
@@ -253,7 +253,7 @@ alpha_df=Boucle_SensibiliteAlphaSimple_With1Storage(areaConsumption, availabilit
 alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
-#region Analyse
+#region Analyses
 def reg_alpha0(reg,PrixGaz):
     Capex=-(reg['const']+reg['PrixGaz']*PrixGaz)/reg['Capex']
     return Capex
@@ -267,6 +267,8 @@ Alpha_melted = Alpha_melted[Alpha_melted.alpha > 0.0001]
 df=pd.DataFrame(np.arange(0,151,1),columns={'PrixGaz'})
 
 fig1=go.Figure()
+fig2=go.Figure()
+fig3=go.Figure()
 style=[[(37, 253, 233),(44, 117, 255),(22, 184, 78),(237, 0, 0),(243, 214, 23),(223, 115, 255)],['lines','markers','markers+lines','lines'],[1,1,1,0.3]]
 
 c1=0
@@ -276,15 +278,33 @@ for s_list in Scenarios :
     for s in s_list :
         Rdeux,Predictions,Parameters=regression(Alpha_melted.loc[Alpha_melted['scenario']==s])
         Alpha_melted.loc[Alpha_melted['scenario']==s,"PredictionAlpha"] =Predictions['simple']
+        Alpha_melted.loc[Alpha_melted['scenario'] == s, "Alpha-PredictionAlpha"] = Alpha_melted.loc[Alpha_melted['scenario']==s,"PredictionAlpha"]-Alpha_melted.loc[Alpha_melted['scenario']==s,"alpha"]
         Param=Parameters['simple']
         df.loc[:,s] = reg_alpha0(Param, df.PrixGaz)
         fig1=fig1.add_trace(go.Scatter(x=df.PrixGaz,y=df[s],marker_color='rgb'+str(style[0][c1]),mode=style[1][c2],opacity=style[2][c2],name=s))
+        fig2 = fig2.add_trace(go.Scatter(x=Alpha_melted.loc[Alpha_melted['scenario'] == s, "alpha"], y=Alpha_melted.loc[Alpha_melted['scenario'] == s, "PredictionAlpha"],mode='markers',name=s))
+        fig3=fig3.add_trace(go.Scatter(x=Alpha_melted.loc[Alpha_melted['scenario'] == s, "alpha"], y=Alpha_melted.loc[Alpha_melted['scenario'] == s, "Alpha-PredictionAlpha"],mode='markers',name=s))
         c2=c2+1
     c1=c1+1
 
 fig1=fig1.update_layout(title='Equations Alpha=0 pour chaque scnéario',xaxis_title='Prix du gaz (€/MWh)', yaxis_title='Capex H2 (€/MWh/an)')
 plotly.offline.plot(fig1, filename='Alpha=0.html')
+fig2=fig2.update_layout(title='Alpha_Prédiction=f(Alpha) pour chaque scnéario',xaxis_title='Alpha', yaxis_title='Alpha_Prédiction')
+fig2 = fig2.add_trace(go.Scatter(x=np.arange(0,1.1,0.1), y=np.arange(0,1.1,0.1),mode='lines',name='Alpha_Prédiction=Alpha'))
+plotly.offline.plot(fig2, filename='Alpha_Prediction=f(Alpha).html')
+fig3=fig3.update_layout(title='Alpha-Alpha_Prédiction=f(Alpha) pour chaque scnéario',xaxis_title='Alpha', yaxis_title='Alpha-Alpha_Prédiction')
+plotly.offline.plot(fig3, filename='Alpha-Alpha_Prédiction=f(Alpha).html')
+#endregion
 
-
+#region Analyse 2
+Alpha_melted=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Alpha_melted.drop(columns='Unnamed: 0',inplace=True)
+areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
+Data=Alpha_melted[Alpha_melted.Capex ==302412]
+Data.loc[:,'DemRes']=(areaConsumption.groupby('RESSOURCES').agg({"areaConsumption" : "sum"}).loc['electricity']['areaConsumption']/(10**6))\
+                     -Data['HydroReservoir_Prod']-Data['HydroRiver_Prod']-Data['Solar_Prod']-Data['WindOnShore_Prod']
+Data.loc[:,'nbh_H2']=Data['electrolysis_Prod']*(10**3)/Data['electrolysis_Capa']
+fig=px.scatter(Data,Data.DemRes,Data.nbh_H2,color=Data.scenario)
+plotly.offline.plot(fig, filename='test.html')
 
 #endregion

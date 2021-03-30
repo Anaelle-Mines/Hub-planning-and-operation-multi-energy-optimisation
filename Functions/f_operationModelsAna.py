@@ -12,7 +12,7 @@ from Functions.f_optimization import *
 def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],InputFolder = 'Data/Input/',Zones = "FR",year = 2013):
 
     #### reading CSV files
-    areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) + '_' + str(Zones) + '.csv',
+    areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) + '_' + str(Zones) + '_WithH2.csv',
                                   sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "RESSOURCES"])
     availabilityFactor = pd.read_csv(InputFolder + 'availabilityFactor' + str(year) + '_' + str(Zones) + '.csv',
                                      sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "TECHNOLOGIES"])
