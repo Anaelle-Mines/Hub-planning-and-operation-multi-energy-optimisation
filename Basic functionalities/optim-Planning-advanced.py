@@ -185,7 +185,8 @@ alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans u
 #endregion
 
 #region Construction pandas avec toutes les matrices alpha
-Scenarios=['base','50-50-S','50-100-S','50-100-A','50-150-S','37-50-S','37-100-S','37-100-A','37-150-S','24-50-S','24-100-S','24-100-A','24-150-S','11-50-S','11-100-S','11-100-A','11-150-S','0-50-S','0-100-S','0-100-A','0-150-S']
+#Scenarios=['base','50-50-S','50-100-S','50-100-A','50-150-S','37-50-S','37-100-S','37-100-A','37-150-S','24-50-S','24-100-S','24-100-A','24-150-S','11-50-S','11-100-S','11-100-A','11-150-S','0-50-S','0-100-S','0-100-A','0-150-S']
+Scenarios=['base','base-H2','50-100-S','50-100-S-H2','37-100-S','37-100-S-H2','24-100-S','24-100-S-H2','11-100-S','11-100-S-H2','0-100-S','0-100-S-H2']
 list_df=[]
 
 for s in Scenarios :
@@ -194,23 +195,23 @@ for s in Scenarios :
     df['scenario']=s
     list_df.append(df)
 matrice_melted=pd.concat(list_df)
-matrice_melted.to_csv('Alpha_matrice_melted.csv') # enregistrement de la matrice dans un csv
+matrice_melted.to_csv('Alpha_matrice_melted-H2.csv') # enregistrement de la matrice dans un csv
 
 #endregion
 
 #region Régression linéaire
 
-Imp=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Imp=pd.read_csv('Alpha_matrice_melted-H2.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
 Imp.drop(columns='Unnamed: 0', inplace=True)
 MyData = Imp[Imp.scenario == 'base']
-MyData.rename(columns={"value": "Simulation"}, inplace=True)
-MyData = MyData[MyData.Simulation > 0.0001]
+MyData = MyData[MyData.alpha > 0.0001]
 Rdeux,Predictions,Parameters=regression(MyData)
 
+MyData.rename(columns={"alpha": "Simulation"}, inplace=True)
 MyData.loc[:,"Prediction"] =Predictions['simple']
 MyData=MyData.melt( id_vars=['PrixGaz',"Capex"],var_name="Type",value_vars=["Simulation","Prediction"])
 fig2 = px.scatter_3d(MyData, x='PrixGaz', y='Capex', z='value',color='Type')
-plotly.offline.plot(fig2, filename='régression aplha.html')
+plotly.offline.plot(fig2, filename='régression aplha H2.html')
 
 #endregion
 
@@ -258,9 +259,10 @@ def reg_alpha0(reg,PrixGaz):
     Capex=-(reg['const']+reg['PrixGaz']*PrixGaz)/reg['Capex']
     return Capex
 
-Scenarios=[['base'],['50-50-S','50-100-S','50-100-A','50-150-S'],['37-50-S','37-100-S','37-100-A','37-150-S'],['24-50-S','24-100-S','24-100-A','24-150-S'],['11-50-S','11-100-S','11-100-A','11-150-S'],['0-50-S','0-100-S','0-100-A','0-150-S']]
+#Scenarios=[['base'],['50-50-S','50-100-S','50-100-A','50-150-S'],['37-50-S','37-100-S','37-100-A','37-150-S'],['24-50-S','24-100-S','24-100-A','24-150-S'],['11-50-S','11-100-S','11-100-A','11-150-S'],['0-50-S','0-100-S','0-100-A','0-150-S']]
+Scenarios=[['base','base-H2'],['50-100-S','50-100-S-H2'],['37-100-S','37-100-S-H2'],['24-100-S','24-100-S-H2'],['11-100-S','11-100-S-H2'],['0-100-S','0-100-S-H2']]
 
-Alpha_melted=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Alpha_melted=pd.read_csv('Alpha_matrice_melted-H2.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
 Alpha_melted.drop(columns='Unnamed: 0',inplace=True)
 Alpha_melted = Alpha_melted[Alpha_melted.alpha > 0.0001]
 
@@ -297,14 +299,15 @@ plotly.offline.plot(fig3, filename='Alpha-Alpha_Prédiction=f(Alpha).html')
 #endregion
 
 #region Analyse 2
-Alpha_melted=pd.read_csv('Alpha_matrice_melted.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Alpha_melted=pd.read_csv('Alpha_matrice_melted-H2.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
 Alpha_melted.drop(columns='Unnamed: 0',inplace=True)
 areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
-Data=Alpha_melted[Alpha_melted.Capex ==302412]
+Data=Alpha_melted[Alpha_melted.Capex ==453618.0]
 Data.loc[:,'DemRes']=(areaConsumption.groupby('RESSOURCES').agg({"areaConsumption" : "sum"}).loc['electricity']['areaConsumption']/(10**6))\
-                     -Data['HydroReservoir_Prod']-Data['HydroRiver_Prod']-Data['Solar_Prod']-Data['WindOnShore_Prod']
+                     -Data['HydroReservoir_Prod']-Data['HydroRiver_Prod']-Data['Solar_Prod']-Data['WindOnShore_Prod']-Data['OldNuke_Prod']
+Data.loc[:,'DemResFactor']=Data.loc[:,'DemRes']/Data.loc[:,'DemResMax']
 Data.loc[:,'nbh_H2']=Data['electrolysis_Prod']*(10**3)/Data['electrolysis_Capa']
-fig=px.scatter(Data,Data.DemRes,Data.nbh_H2,color=Data.scenario)
-plotly.offline.plot(fig, filename='test.html')
+fig=px.scatter(Data,Data.DemRes,Data.nbh_H2,color=Data.scenario,title='nbh_H2=f(DemRes) CAPEX = +50%')
+plotly.offline.plot(fig, filename='nbh_H2=f(DemRes)_CAPEX+50.html')
 
 #endregion

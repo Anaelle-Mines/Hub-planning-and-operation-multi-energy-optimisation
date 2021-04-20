@@ -447,18 +447,24 @@ def SensibiliteAlphaSimple(Variations, solver = 'mosek') :
     opt = SolverFactory(solver)
     results = opt.solve(model)
     Variables = getVariables_panda_indexed(model)
-
+    Data=Variables['power'].set_index('TECHNOLOGIES')
+    DemRes=areaConsumption.reset_index()[areaConsumption.reset_index().RESSOURCES=='electricity'].set_index('TIMESTAMP').drop('RESSOURCES',axis=1)
+    DemRes.loc[:,'areaConsumption']=DemRes.loc[:,'areaConsumption']\
+                                    -Data.loc['HydroReservoir'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['WindOnShore'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['OldNuke'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['Solar'].set_index('TIMESTAMP')['power']
+    DemResMax=DemRes.max()/(10**6)
     Production = (Variables['power'].groupby('TECHNOLOGIES').agg({"power" : "sum"})/(10**6)).rename_axis(None, axis = 0).transpose()
     Capacity = (Variables['capacity'].set_index('TECHNOLOGIES') / (10 ** 3)).rename_axis(None, axis=0).transpose()
     Importation = Variables['importation'].groupby('RESSOURCES').agg({"importation" : "sum"})/(10**6)
     alpha = Production.pac['power'] / (Production.CCG['power'] + Production.TAC['power'] + Production.pac['power'])
-
     Capacity.columns=[x+'_Capa' for x in list(Capacity.columns)]
     Capacity.reset_index(drop=True,inplace=True)
     Production.columns = [x + '_Prod' for x in list(Production.columns)]
     Production.reset_index(drop=True, inplace=True)
     Resultat=Capacity.join(Production)
-    Resultat[['gaz_Conso','alpha','Capex','PrixGaz']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze()]
+    Resultat[['gaz_Conso','alpha','Capex','PrixGaz','DemResMax']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze(),DemResMax]
 
     return Resultat
 
@@ -558,7 +564,14 @@ def SensibiliteAlpha_WithStorage(Variations) :
     TechParameters.loc['pac','capacityCost'] = TechParameters.loc['pac','capacityCost'] * (1 + VariationCAPEX.squeeze())
     results,Stats,Variables = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
                                                 conversionFactor,StorageParameters,tol,n)
-
+    Data=Variables['power'].set_index('TECHNOLOGIES')
+    DemRes=areaConsumption.reset_index()[areaConsumption.reset_index().RESSOURCES=='electricity'].set_index('TIMESTAMP').drop('RESSOURCES',axis=1)
+    DemRes.loc[:,'areaConsumption']=DemRes.loc[:,'areaConsumption']\
+                                    -Data.loc['HydroReservoir'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['WindOnShore'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['OldNuke'].set_index('TIMESTAMP')['power']\
+                                    -Data.loc['Solar'].set_index('TIMESTAMP')['power']
+    DemResMax=DemRes.max()/(10**6)
     Production = (Variables['power'].groupby('TECHNOLOGIES').agg({"power" : "sum"})/(10**6)).rename_axis(None, axis = 0).transpose()
     Capacity = (Variables['capacity'].set_index('TECHNOLOGIES') / (10 ** 3)).rename_axis(None, axis=0).transpose()
     Importation = Variables['importation'].groupby('RESSOURCES').agg({"importation" : "sum"})/(10**6)
@@ -569,6 +582,6 @@ def SensibiliteAlpha_WithStorage(Variations) :
     Production.columns = [x + '_Prod' for x in list(Production.columns)]
     Production.reset_index(drop=True, inplace=True)
     Resultat=Capacity.join(Production)
-    Resultat[['gaz_Conso','alpha','Capex','PrixGaz']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze()]
+    Resultat[['gaz_Conso','alpha','Capex','PrixGaz','DemResMax']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze(),DemResMax]
 
     return Resultat
