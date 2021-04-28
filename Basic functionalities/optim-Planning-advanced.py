@@ -63,10 +63,12 @@ solver = 'mosek'  ## no need for solverpath with mosek.
 # endregion
 
 #region Ramp Single area : loading parameters case with ramp constraints
-Zones="FR"
+Zones="PACA"
 year=2013
-Selected_TECHNOLOGIES=['OldNuke','Solar','WindOnShore','HydroReservoir','HydroRiver','TAC','CCG','pac','electrolysis']
-areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
+other='_WithH2'
+PrixRes='fixe'
+Selected_TECHNOLOGIES=['OldNuke','Solar','WindOnShore','pac','electrolysis']
+areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters(Selected_TECHNOLOGIES,'Data/Input/',Zones,year,other,PrixRes)
 
 #endregion
 
@@ -75,6 +77,9 @@ model = My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumpt
 opt = SolverFactory(solver)
 results=opt.solve(model)
 Variables=getVariables_panda_indexed(model)
+#### lagrange multipliers
+Constraints= getConstraintsDual_panda(model)
+
 #endregion
 
 #region Visualisation des résultats
@@ -97,16 +102,13 @@ PlotElectricityProduction(Variables)
 # H2 production
 PlotH2Production(Variables)
 
-#### lagrange multipliers
-Constraints= getConstraintsDual_panda(model)
-
 #endregion
 
 #region Chiffres principaux
 Capa_totale = sum(Variables['capacity']['capacity'])/1000
 power_use=Variables['power'].pivot(index="TIMESTAMP",columns='TECHNOLOGIES', values='power')
-Prod_elec = sum(Variables['power']['power'])/1000000#-sum(power_use['electrolysis'])*1.43/1000000
-#Prod_H2 = sum(power_use['electrolysis'])/1000000
+Prod_elec = sum(Variables['power']['power'])/1000000-sum(power_use['electrolysis'])*1.43/1000000
+Prod_H2 = sum(power_use['electrolysis'])/1000000
 Capa_cost = sum(Variables['capacityCosts']['capacityCosts'])/1000000
 Import_cost = sum(Variables['importCosts']['importCosts'])/1000000
 Prod_gaz=Variables['power'].loc[Variables['power']['TECHNOLOGIES']=='CCG'].sum(axis=0)['power']/1000000+Variables['power'].loc[Variables['power']['TECHNOLOGIES']=='TAC'].sum(axis=0)['power']/1000000
@@ -115,7 +117,7 @@ Prod_gaz=Variables['power'].loc[Variables['power']['TECHNOLOGIES']=='CCG'].sum(a
 print('Capa_totale = ',Capa_totale, ' GW')
 print('Prod_elec = ',Prod_elec,' TWh')
 print('Prod_gaz = ',Prod_gaz,' TWh')
-#print('Prod_H2 = ',Prod_H2,' TWh')
+print('Prod_H2 = ',Prod_H2,' TWh')
 print('Capa_cost = ',Capa_cost,' M€')
 print('Import_cost = ',Import_cost,' M€')
 #print('Emission_costs = ',Emission_costs,' M€')
@@ -159,7 +161,7 @@ Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1
 
 alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlphaSimple)
 
-alpha_df.to_csv('Alpha_matrice_24-100-S-H2.csv')  # enregistrement de la matrice dans un csv
+alpha_df.to_csv('Alpha_matrice_0-100-S.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
 #region Sensibilité Alpha Parallel with storage, solving and loading results
@@ -172,16 +174,12 @@ def expand_grid(dictionary):
    return pd.DataFrame([row for row in product(*dictionary.values())],
                        columns=dictionary.keys())
 
-
-#"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5]
-#"variation_prix_GazNat": [10, 20, 30,40,50,60,70,80,90,100]
-
-Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ],
-            "variation_prix_GazNat": [10, 20]})
+Variations=expand_grid({"variation_CAPEX_H2" : [-0.5, -0.4 ,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5],
+            "variation_prix_GazNat": [10, 20, 30,40,50,60,70,80,90,100]})
 
 alpha_df=applyParallel(Variations.groupby(Variations.index), SensibiliteAlpha_WithStorage)
 
-alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
+alpha_df.to_csv('Alpha_matrice_37-100-A.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
 #region Construction pandas avec toutes les matrices alpha
@@ -251,7 +249,7 @@ variation_CAPEX_H2=[-0.5,-0.4]#,-0.3,-0.2,-0.1,0,0.1,0.2,0.3,0.4,0.5]
 variation_prix_GazNat=[10,20,]#30,40,50,60,70,80,90,100]
 alpha_df=Boucle_SensibiliteAlphaSimple_With1Storage(areaConsumption, availabilityFactor, TechParameters, ResParameters,
                                                 conversionFactor,variation_CAPEX_H2,variation_prix_GazNat,storageParameters,tol,n)
-alpha_df.to_csv('Alpha_matrice_test.csv')  # enregistrement de la matrice dans un csv
+alpha_df.to_csv('Alpha_matrice_24-100-S.csv')  # enregistrement de la matrice dans un csv
 #endregion
 
 #region Analyses
@@ -299,15 +297,43 @@ plotly.offline.plot(fig3, filename='Alpha-Alpha_Prédiction=f(Alpha).html')
 #endregion
 
 #region Analyse 2
-Alpha_melted=pd.read_csv('Alpha_matrice_melted-H2.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
+Alpha_melted=pd.read_csv('Alpha_matrice_24-100-S-H2.csv',sep=',',decimal='.',skiprows=0) # Récupération de la matrice à partir du csv
 Alpha_melted.drop(columns='Unnamed: 0',inplace=True)
 areaConsumption,availabilityFactor, TechParameters, conversionFactor, ResParameters = loadingParameters()
 Data=Alpha_melted[Alpha_melted.Capex ==453618.0]
 Data.loc[:,'DemRes']=(areaConsumption.groupby('RESSOURCES').agg({"areaConsumption" : "sum"}).loc['electricity']['areaConsumption']/(10**6))\
                      -Data['HydroReservoir_Prod']-Data['HydroRiver_Prod']-Data['Solar_Prod']-Data['WindOnShore_Prod']-Data['OldNuke_Prod']
-Data.loc[:,'DemResFactor']=Data.loc[:,'DemRes']/Data.loc[:,'DemResMax']
+Data.loc[:,'DemResFactor']=Data.loc[:,'DemRes']/(Data.loc[:,'DemResMax']*8760)
 Data.loc[:,'nbh_H2']=Data['electrolysis_Prod']*(10**3)/Data['electrolysis_Capa']
 fig=px.scatter(Data,Data.DemRes,Data.nbh_H2,color=Data.scenario,title='nbh_H2=f(DemRes) CAPEX = +50%')
 plotly.offline.plot(fig, filename='nbh_H2=f(DemRes)_CAPEX+50.html')
+
+#endregion
+
+#region Analyse cas PACA
+
+Prix_H2_MW=sum(power_use['electrolysis'])*1000/Variables['capacityCosts'].set_index('TECHNOLOGIES').loc['electrolysis']['capacityCosts']+Constraints['annualEnergyCtr'].set_index('RESSOURCES').loc['hydrogen']['annualEnergyCtr'] #€/MWh
+Prix_H2_kg=Prix_H2_MW/1000*33.33 #€/kg
+Prix_elec=Constraints['energyCtr'].agg({'energyCtr':'mean'})['energyCtr'] #€/MWh
+Capa_H2=Variables['capacity'].set_index('TECHNOLOGIES').loc['electrolysis']['capacity']
+nbh_H2=sum(power_use['electrolysis'])/Capa_H2
+Prod_H2=sum(power_use['electrolysis'])/1000000
+
+import_elec=Variables['importation'].groupby('RESSOURCES').agg({'importation':'sum'}).loc['electricity']['importation']/1000000 #TWh
+EnR_elec=Variables['power'].groupby('TECHNOLOGIES').agg({'power':'sum'}).loc['Solar']['power']+Variables['power'].groupby('TECHNOLOGIES').agg({'power':'sum'}).loc['WindOnShore']['power']  #TWh
+total_elec=import_elec+EnR_elec
+elec_H2=sum(power_use['electrolysis'])*1.43/1000000
+elec_inject=total_elec-elec_H2
+local_elec_H2=EnR_elec-elec_inject
+reseau_elec_H2=import_elec
+
+print('Prix total hydrogène = ',Prix_H2_MW,' €/MWh soit ',Prix_H2_kg,' €/kg')
+print('Prix variable électricité = ',Prix_elec,' €/MWh')
+print('Capacité électrolyseur = ',Capa_H2/1000,' GW')
+print('Nombre heure de fonctionnement électrolyseur = ',nbh_H2,' h soit facteur de charge =',nbh_H2/8760*100,'%')
+print('Prod hdyrogène =',Prod_H2,' TWh')
+print('Electricité locale EnR = ',local_elec_H2,' TWh soit ',local_elec_H2/elec_H2*100,'%')
+print('Electricité réseau = ',reseau_elec_H2,' TWh')
+print('Electricité réinjectée = ',elec_inject,' TWh')
 
 #endregion

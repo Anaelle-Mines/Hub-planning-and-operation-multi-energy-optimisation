@@ -9,10 +9,10 @@ import pandas as pd
 import mosek
 from Functions.f_optimization import *
 
-def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],InputFolder = 'Data/Input/',Zones = "FR",year = 2013):
+def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],InputFolder = 'Data/Input/',Zones = "FR",year = 2013,other='',PrixRes='fixe'):
 
     #### reading CSV files
-    areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) + '_' + str(Zones) + '_WithH2.csv',
+    areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) +'_' + str(Zones)+str(other)+'.csv',
                                   sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "RESSOURCES"])
     availabilityFactor = pd.read_csv(InputFolder + 'availabilityFactor' + str(year) + '_' + str(Zones) + '.csv',
                                      sep=',', decimal='.', skiprows=0).set_index(["TIMESTAMP", "TECHNOLOGIES"])
@@ -20,8 +20,8 @@ def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore'
                                  comment="#").set_index(["TECHNOLOGIES"])
     conversionFactor = pd.read_csv(InputFolder + 'Ressources_conversionFactors.csv', sep=',', decimal='.', skiprows=0,
                                    comment="#").set_index(["RESSOURCES", "TECHNOLOGIES"])
-    ResParameters = pd.read_csv(InputFolder + 'Ressources_set.csv', sep=',', decimal='.', skiprows=0,
-                                comment="#").set_index(["RESSOURCES"])
+    ResParameters = pd.read_csv(InputFolder + 'Ressources_set_'+str(PrixRes)+'.csv', sep=',', decimal='.', skiprows=0,
+                                comment="#").set_index(["TIMESTAMP","RESSOURCES"])
 
     #### Selection of subset
     availabilityFactor = availabilityFactor.loc[(slice(None), Selected_TECHNOLOGIES), :]
@@ -83,8 +83,11 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
                                       initialize=availabilityFactor.loc[:,"availabilityFactor"].squeeze().to_dict())
     model.conversionFactor = Param(model.RESSOURCES_TECHNOLOGIES, default=0,
                                    initialize=conversionFactor.loc[:, "conversionFactor"].squeeze().to_dict())
+    model.ResParameters=     Param(model.TIMESTAMP_RESSOURCES, mutable=True,default=0,
+                                      initialize=ResParameters.loc[:,"importCost"].squeeze().to_dict(), domain=Any)
 
-    # with test of existing columns on TechParameters
+
+   # with test of existing columns on TechParameters
     for COLNAME in TechParameters:
         if COLNAME not in ["TECHNOLOGIES", "AREAS"]:  ### each column in TechParameters will be a parameter
             exec("model." + COLNAME + " = Param(model.TECHNOLOGIES, default=0," +
@@ -92,10 +95,7 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
     ## manière générique d'écrire pour toutes les colomnes COL de TechParameters quelque chose comme
     #    model.COLNAME =          Param(model.TECHNOLOGIES, domain=NonNegativeReals,default=0,
     #                                 initialize=TechParameters.COLNAME.squeeze().to_dict())
-    for COLNAME in ResParameters:
-        if COLNAME not in ["RESSOURCES"]:  ### each column in ResParameters will be a parameter
-            exec("model." + COLNAME + " = Param(model.RESSOURCES, default=0," +
-                 "initialize=ResParameters." + COLNAME + ".squeeze().to_dict())")
+
 
     ################
     # Variables    #
@@ -146,9 +146,8 @@ def My_GetElectricSystemModel_PlaningSingleNode_MultiRessources(areaConsumption,
     model.capacityCostsCtr = Constraint(model.TECHNOLOGIES, rule=capacityCostsDef_rule)
 
     # importCosts definition Constraints
-    def importCostsDef_rule(model,res):  # EQ forall tech in TECHNOLOGIES   energyCosts  = sum{t in TIMESTAMP} energyCost[tech]*energy[t,tech];
-        temp = model.importCost[res]
-        return sum(temp * model.importation[t, res] for t in model.TIMESTAMP) == model.importCosts[res]
+    def importCostsDef_rule(model,res):  # ;
+        return sum((model.ResParameters[t,res] * model.importation[t, res]) for t in model.TIMESTAMP) == model.importCosts[res]
     model.importCostsCtr = Constraint(model.RESSOURCES, rule=importCostsDef_rule)
 
      # gaz volume Constraints
@@ -464,8 +463,7 @@ def SensibiliteAlphaSimple(Variations, solver = 'mosek') :
     Production.columns = [x + '_Prod' for x in list(Production.columns)]
     Production.reset_index(drop=True, inplace=True)
     Resultat=Capacity.join(Production)
-    Resultat[['gaz_Conso','alpha','Capex','PrixGaz','DemResMax']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze(),DemResMax]
-
+    Resultat[['gaz_Conso','alpha','Capex','PrixGaz','DemResMax']]=[Importation.loc['gaz','importation'],alpha,TechParameters.loc['electrolysis','capacityCost']+TechParameters.loc['pac','capacityCost'],VariationPrixGaz.squeeze(),DemResMax['areaConsumption']]
     return Resultat
 
 

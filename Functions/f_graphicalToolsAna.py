@@ -56,7 +56,7 @@ def PlotCapacityAndEnegyProduction(Variables):
     plotly.offline.plot(fig4, filename='Produced energy.html')
     return
 
-def PlotRessourceVariation(Variables):
+def PlotRessourceVariation(Variables,year='2013'):
     energy_variation = Variables['energy'].pivot(index="TIMESTAMP", columns='RESSOURCES', values='energy')
     TIMESTAMP_d = pd.date_range(start=str(year) + "-01-01 00:00:00", end=str(year) + "-12-31 23:00:00", freq="1H")
     energy_variation.index = TIMESTAMP_d;
@@ -67,7 +67,7 @@ def PlotRessourceVariation(Variables):
     plotly.offline.plot(fig5, filename='Energy variation.html')
     return
 
-def PlotElectricityProduction(Variables) :
+def PlotElectricityProduction(Variables,year='2013') :
     power_use = Variables['power'].pivot(index="TIMESTAMP", columns='TECHNOLOGIES', values='power')
     TIMESTAMP_d = pd.date_range(start=str(year) + "-01-01 00:00:00", end=str(year) + "-12-31 23:00:00", freq="1H")
     power_use.index = TIMESTAMP_d;
@@ -78,7 +78,7 @@ def PlotElectricityProduction(Variables) :
     plotly.offline.plot(fig6, filename='Power.html')
     return
 
-def PlotH2Production(Variables) :
+def PlotH2Production(Variables,year='2013') :
     power_H2 = Variables['power'].pivot(index="TIMESTAMP", columns='TECHNOLOGIES', values='power')
     power_H2=power_H2['electrolysis']
     TIMESTAMP_d = pd.date_range(start=str(year) + "-01-01 00:00:00", end=str(year) + "-12-31 23:00:00", freq="1H")
