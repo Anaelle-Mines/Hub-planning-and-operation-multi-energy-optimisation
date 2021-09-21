@@ -658,7 +658,7 @@ def GetElectricSystemModel_PlaningMultiNode_with1Storage(areaConsumption,availab
             areaConsumption.loc[(AREA, slice(None)), "Storage"] = TMP
             areaConsumption.loc[(AREA, slice(None)), "NewConsumption"] = areaConsumption.loc[
                                                                              (AREA, slice(None)), "areaConsumption"] + \
-                                                                         areaConsumption.loc[
+                                                        +                 areaConsumption.loc[
                                                                              (AREA, slice(None)), "Storage"]
         for i in model.areaConsumption:  model.areaConsumption[i] = areaConsumption.NewConsumption[i]
         cpt=cpt+1
