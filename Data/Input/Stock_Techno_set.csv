@@ -1,5 +1,0 @@
-RESSOURCES,storageCost,c_max,efficiency_in,efficiency_out
-electricity,100,3000,0.9,0.9
-hydrogen,100,200000,1,1
-gaz,0,0,1,1
-uranium,0,0,1,1
