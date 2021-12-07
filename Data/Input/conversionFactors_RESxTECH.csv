@@ -1,4 +1,4 @@
-﻿RESSOURCES,TECHNOLOGIES,conversionFactor
+﻿RESOURCES,TECHNOLOGIES,conversionFactor
 electricity,TAC,1
 electricity,CCG,1
 electricity,OldNuke,1
@@ -55,3 +55,7 @@ hydrogen,Solar,0
 hydrogen,Solar_PPA,0
 hydrogen,WindOffShore,0
 hydrogen,Methanation,-1.25
+electricity,SMR_class,0
+gaz,SMR_class,-1.53
+uranium,SMR_class,0
+hydrogen,SMR_class,1
