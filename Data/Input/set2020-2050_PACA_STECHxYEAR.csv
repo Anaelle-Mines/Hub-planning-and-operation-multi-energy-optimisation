@@ -1,7 +1,10 @@
-﻿STOCK_TECHNO,YEAR,resource,storagePowerInvestCost,storageEnergyInvestCost,storageOperationCost,lifeSpan,p_max,c_max
-Battery,2020,electricity,223600,239940,4472,15,5000,50000
-tankH2_G,2020,hydrogen,10000,8000,650,20,100000,100000
-Battery,2030,electricity,170280,127280,3405,15,5000,50000
-tankH2_G,2030,hydrogen,10000,8000,650,20,100000,100000
-Battery,2040,electricity,163400,107500,3268,15,5000,50000
-tankH2_G,2040,hydrogen,10000,8000,650,20,100000,100000
+﻿STOCK_TECHNO,YEAR,resource,storagePowerInvestCost,storageEnergyInvestCost,storageOperationCost,storagelifeSpan,p_max,c_max
+Battery,2020,electricity,223600,239940,4472,15,10000,100000
+tankH2_G,2020,hydrogen,10000,8000,650,20,10000,100000
+Battery,2030,electricity,170280,127280,3405,15,10000,100000
+tankH2_G,2030,hydrogen,10000,8000,650,20,10000,100000
+Battery,2040,electricity,163400,107500,3268,15,10000,100000
+tankH2_G,2040,hydrogen,10000,8000,650,20,10000,100000
+STEP,2020,electricity,400000,300,650,40,0,0
+STEP,2030,electricity,300000,400,650,40,0,0
+STEP,2040,electricity,200000,1000,650,40,0,0
