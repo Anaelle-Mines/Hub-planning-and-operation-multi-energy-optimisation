@@ -44,15 +44,15 @@ from Functions.f_InputScenario import *
 #region Solver and data location definition
 
 #region Choice of Scenario
-Scenario='Ref' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG'
-ScenarioName='Ref_bis'
+Scenario='BG' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG', 'EnR+'
+ScenarioName='BG_new'
 #endregion
 
 InputFolder='Data/Input/Input_'+ScenarioName+'/'
 OutputFolder='Data/output/'
 d=datetime.date.today()
 SimulName=str(d.year)+'-'+str(d.month)+'-'+str(d.day)+'_'+ScenarioName
-DataCreation_date='2022-5-23'
+DataCreation_date='2022-9-7'
 SimulNameFr=DataCreation_date+'_'+ScenarioName+'_Fr'
 
 solver= 'mosek' ## no need for solverpath with mosek.
@@ -292,21 +292,23 @@ Variables['carbon_Pvar'].pivot(index="TIMESTAMP",columns='YEAR_op', values='carb
 
 #region Descritpion of scenario
 
-Param_list={'MixElec': {'plus':'100%','ref':'75%','moins':'75%'} ,
+Param_list={'MixElec': {'plus':'100%','ref':'75%','moins':'50%'} ,
             'CAPEX_EnR': {'plus':0.9,'ref':0.8,'moins':0.7},
             'CAPEX_eSMR': {'plus':900,'ref':700,'moins':500},
             'CAPEX_CCS': {'plus':0.9,'ref':0.75,'moins':0.5},
-            'CAPEX_elec': {'plus':900,'ref':700,'moins':500},
+            'CAPEX_elec': {'plus':0.7,'ref':0.55,'moins':0.4},
             'Biogaz_price': {'plus':100,'ref':80,'moins':60},
             'Gaznat_price': {'plus':2,'ref':1.5,'moins':1},
-            'CarbonTax' : {'plus':170,'ref':150,'moins':130}}
+            'CarbonTax' : {'plus':170,'ref':150,'moins':130},
+            'Local_RE':{'plus':[3000,300,2000],'ref':[2000,150,1000],'moins':[2000,150,1000]}}
 
-Scenario_list={'Ref':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'ref','CAPEX_CCS': 'ref','CAPEX_elec': 'ref','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref'},
-               'eSMR':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'moins','CAPEX_CCS': 'ref','CAPEX_elec': 'plus','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'plus'},
-               'EnR':{'MixElec':'moins','CAPEX_EnR': 'moins','CAPEX_eSMR': 'plus','CAPEX_CCS': 'ref','CAPEX_elec': 'moins','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref'},
-               'Grid':{'MixElec':'plus','CAPEX_EnR': 'plus','CAPEX_eSMR': 'plus','CAPEX_CCS': 'ref','CAPEX_elec': 'moins','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref'},
-               'GN':{'MixElec':'ref','CAPEX_EnR': 'plus','CAPEX_eSMR': 'ref','CAPEX_CCS': 'moins','CAPEX_elec': 'ref','Biogaz_price': 'plus','Gaznat_price': 'moins','CarbonTax' :'moins'},
-               'BG':{'MixElec':'ref','CAPEX_EnR': 'plus','CAPEX_eSMR': 'ref','CAPEX_CCS': 'plus','CAPEX_elec': 'plus','Biogaz_price': 'moins','Gaznat_price': 'plus','CarbonTax' :'plus'}}
+Scenario_list={'Ref':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'ref','CAPEX_CCS': 'ref','CAPEX_elec': 'ref','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref','Local_RE':'ref'},
+               'eSMR':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'moins','CAPEX_CCS': 'ref','CAPEX_elec': 'plus','Biogaz_price': 'ref','Gaznat_price': 'moins','CarbonTax' :'plus','Local_RE':'ref'},
+               'EnR':{'MixElec':'moins','CAPEX_EnR': 'moins','CAPEX_eSMR': 'plus','CAPEX_CCS': 'ref','CAPEX_elec': 'moins','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref','Local_RE':'ref'},
+               'EnR+':{'MixElec':'moins','CAPEX_EnR': 'moins','CAPEX_eSMR': 'plus','CAPEX_CCS': 'ref','CAPEX_elec': 'moins','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref','Local_RE':'plus'},
+               'Grid':{'MixElec':'plus','CAPEX_EnR': 'plus','CAPEX_eSMR': 'plus','CAPEX_CCS': 'ref','CAPEX_elec': 'moins','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref','Local_RE':'ref'},
+               'GN':{'MixElec':'ref','CAPEX_EnR': 'plus','CAPEX_eSMR': 'ref','CAPEX_CCS': 'moins','CAPEX_elec': 'ref','Biogaz_price': 'plus','Gaznat_price': 'moins','CarbonTax' :'moins','Local_RE':'ref'},
+               'BG':{'MixElec':'ref','CAPEX_EnR': 'plus','CAPEX_eSMR': 'ref','CAPEX_CCS': 'plus','CAPEX_elec': 'plus','Biogaz_price': 'moins','Gaznat_price': 'plus','CarbonTax' :'plus','Local_RE':'ref'}}
 
 ElecMix= {'100%':{'Solar':[52,100,130],'WindOnShore':[45,70,95],'WindOffShore':[5,35,60],'OldNuke':[54,30,0],'NewNuke':[0,0,0],'HydroRiver':[15,15,15],'HydroReservoir':[15,15,15],'Coal_p':[6,0,0],'TAC':[10,5,0],'CCG':[7,5,5],'Interco':[13,26,39],'curtailment':[10,10,10],'Battery':[10,10,30],'STEP':[5,3,2]},
           '75%':{'Solar':[45,55,75],'WindOnShore':[40,52,70],'WindOffShore':[6,15,45],'OldNuke':[54,45,15],'NewNuke':[0,5,13],'HydroRiver':[15,15,15],'HydroReservoir':[15,15,15],'Coal_p':[6,0,0],'TAC':[10,5,0],'CCG':[7,10,17],'Interco':[13,26,39],'curtailment':[10,20,30],'Battery':[10,10,30],'STEP':[5,3,2]},
@@ -508,7 +510,7 @@ create_data_PACA(Scenario, ScenarioName, marketPrice,Carbon_content, Param_list,
 
 #region IV - Multi-tempo with storage single area : loading parameters
 Zones="PACA" ; year='2020-2050'; PrixRes='horaire'
-Selected_TECHNOLOGIES =['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis']
+Selected_TECHNOLOGIES =['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
 #Selected_TECHNOLOGIES = ['OldNuke','Solar', 'WindOnShore','WindOffShore','CCG','NewNuke','WindOffShore','TAC','HydroRiver','HydroReservoir','curtailment','Interco','Coal_p']
 Selected_STECH=['Battery','tankH2_G'] #['Battery','STEP'] #
 dic_eco = {2020: 1, 2030: 2, 2040: 3, 2050: 4}
@@ -594,17 +596,19 @@ os.chdir(SimulName)
 df0=pd.DataFrame({'YEAR_op':[1],'TECHNOLOGIES':['SMR_class_ex'],'capacity_Pvar':[Variables['capacityInvest_Dvar'].set_index(['YEAR_invest','TECHNOLOGIES']).loc[(1,'SMR_class_ex')].capacityInvest_Dvar]})
 df=Variables['capacity_Pvar'].append(df0)
 df=df.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkaline electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking': 'Methane cracking'
 }).fillna(0)
 
 #LoadFactors
 EnR_loadFactor={y : (Variables['power_Dvar'].groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Variables['capacity_Pvar'].set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor={y : (Variables['power_Dvar'].groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Variables['capacity_Pvar'].set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor={y : (Variables['power_Dvar'].groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Variables['capacity_Pvar'].set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1','cracking']].fillna(0) for y in [2,3,4]}
 
 df['SMR w/o CCUS']+=df['SMR_class_ex']
 
@@ -629,28 +633,32 @@ ax[0].bar(x - width/2,l4,width, bottom=[i+j+k for i,j,k in zip(l1,l2,l3)], color
 # Create yellow Bars
 l5=list(df['eSMR + CCUS 50%'])
 ax[0].bar(x - width/2,l5,width, bottom=[i+j+k+l for i,j,k,l in zip(l1,l2,l3,l4)], color='#F8B740',label="eSMR + CCUS 50%")
+# Create pink bar
+l6=list(df['Methane cracking'])
+ax[0].bar(x - width/2,l6,width, bottom=[i+j+k+l+m for i,j,k,l,m in zip(l1,l2,l3,l4,l5)], color=col[6],label="Methane cracking")
 # Create green Bars
-l6=list(df['Water electrolysis'])
-ax[0].bar(x + width/2,l6,width, color=col[2],label="Water electrolysis")
+l7=list(df['Alkaline electrolysis']+df['PEM electrolysis'])
+ax[0].bar(x + width/2,l7,width, color=col[2],label="Water electrolysis")
 
 # Create red bar
-l7=list(df['Solar'])
-ax[1].bar(x ,l7,width, color=col[3],label="Solar")
+l8=list(df['Solar'])
+ax[1].bar(x ,l8,width, color=col[3],label="Solar")
 # Create violet bar
-l8=list(df['WindOnShore'])
-ax[1].bar(x,l8,width,  bottom=l7,color=col[4],label="Wind")
+l9=list(df['WindOnShore'])
+ax[1].bar(x,l9,width,  bottom=l8,color=col[4],label="WindOnShore")
 # Create pink bar
-#l9=list(df['WindOffShore'])
-#ax[1].bar(x,l9,width,  bottom=[i+j for i,j in zip(l7,l8)],color=col[6],label="Wind Offshore")
+l10=list(df['WindOffShore'])
+ax[1].bar(x,l10,width,  bottom=[i+j for i,j in zip(l8,l9)],color=col[6],label="Wind Offshore")
 
 #add Load factors
 for i in np.arange(1,len(x)):
-    ax[0].text((x + width/2)[i], l6[i]/2, str(round(H2_loadFactor[i+1]['electrolysis']*100))+'%',ha='center')
-    ax[1].text((x)[i], l7[i]/2, str(round(EnR_loadFactor[i + 1]['Solar'] * 100)) + '%', ha='center')
-    ax[1].text((x)[i], l7[i]+l8[i]/2, str(round(EnR_loadFactor[i + 1]['WindOnShore'] * 100)) + '%', ha='center')
+    ax[0].text((x + width/2)[i], l7[i]/2, str(round(H2_loadFactor[i+1]['electrolysis_AEL']*100)) +'%',ha='center')
+    ax[1].text((x)[i], l8[i]/2, str(round(EnR_loadFactor[i + 1]['Solar'] * 100)) + '%', ha='center')
+    ax[1].text((x)[i], l8[i]+l9[i]/2, str(round(EnR_loadFactor[i + 1]['WindOnShore'] * 100)) + '%', ha='center')
+    ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[i + 1]['WindOffShore'] * 100)) + '%', ha='center')
 
-ax[0].set_ylim([0,1350])
-ax[1].set_ylim([0,5300])
+ax[0].set_ylim([0,2000])
+ax[1].set_ylim([0,4000])
 ax[0].set_ylabel('Installed capacity (MW)')
 ax[1].set_ylabel('Installed capacity (MW)')
 ax[0].set_title("Evolution of H2 production assets")
@@ -674,12 +682,14 @@ plt.show()
 df0=pd.DataFrame({'YEAR_op':[1],'TECHNOLOGIES':['SMR_class_ex'],'power_Dvar':[Variables['capacityInvest_Dvar'].set_index(['YEAR_invest','TECHNOLOGIES']).loc[(1,'SMR_class_ex')].capacityInvest_Dvar*8760]}).set_index(['YEAR_op','TECHNOLOGIES'])
 df1=Variables['power_Dvar'].groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP').append(df0).reset_index()
 df1=df1.pivot(columns='TECHNOLOGIES',values='power_Dvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkaline electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking': 'Methane cracking'
 }).fillna(0)
 
 df1['SMR w/o CCUS']+=df1['SMR_class_ex']
@@ -707,9 +717,12 @@ ax.bar(x - width/2,l4,width, bottom=[i+j+k for i,j,k in zip(l1,l2,l3)], color=co
 # Create yellow Bars
 l5=list(df1['eSMR + CCUS 50%'])
 ax.bar(x - width/2,l5,width, bottom=[i+j+k+l for i,j,k,l in zip(l1,l2,l3,l4)], color=col[8],label="eSMR + CCUS 50%")
+# Create pink bar
+l6=list(df1['Methane cracking'])
+ax.bar(x - width/2,l6,width, bottom=[i+j+k+l+m for i,j,k,l,m in zip(l1,l2,l3,l4,l5)], color=col[6],label="Methane cracking")
 # Create green Bars
-l6=list(df1['Water electrolysis'])
-ax.bar(x + width/2,l6,width, color=col[2],label="Water electrolysis")
+l7=list(df1['Alkaline electrolysis']+df1['PEM electrolysis'])
+ax.bar(x + width/2,l7,width, color=col[2],label="Water electrolysis")
 
 ax.set_ylabel('H2 production (GWh)')
 ax.set_title("Use of assets")
@@ -828,11 +841,11 @@ for k, yr in enumerate((2, 3, 4)):
     ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'] + Pel_imp[yr]['electricity'],label='Imports',color='#f74242',  zorder=-4)
 
     # Elec consumption
-    ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis'], label='Electrolysis',color='#52de57', zorder=-1)
-    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['electrolysis'], label='eSMR',color='#f4f72e', zorder=-2)
-    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['electrolysis'] + Pel[yr]['SMR_elec'] , label='CCUS',color='#7c7c7c', zorder=-3)
-    ax[k].bar(Pel_stock_in[yr].index, -Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2']  , label='Battery - In', color='#d460df' ,zorder=-4)
-    ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis'] + Pel[yr]['SMR_elec'] - Pel_exp[yr]['electricity'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'], label='Exports',color='#ff7f7f',zorder=-5)
+    ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color='#52de57', zorder=-1)
+    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color='#f4f72e', zorder=-2)
+    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] , label='CCUS',color='#7c7c7c', zorder=-3)
+    ax[k].bar(Pel_stock_in[yr].index, -Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2']  , label='Battery - In', color='#d460df' ,zorder=-4)
+    ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] - Pel_exp[yr]['electricity'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'], label='Exports',color='#ff7f7f',zorder=-5)
 
     ax[k].set_ylabel('Weakly production (GWh)')
     m=(Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'] + Pel_imp[yr]['electricity']).max()+100
@@ -901,11 +914,12 @@ for k, yr in enumerate((2, 3, 4)):
     Pel_exp[yr] = weekly_average(Pel_exp[yr])
 
     # H2 production
-    ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis'], label='Electrolysis',color='#52de57', zorder=-1)
-    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis'], label='eSMR',color='#f4f72e', zorder=-2)
-    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis'], label='SMR',color='#7c7c7c', zorder=-3)
-    ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis'],label='Tank - Out',color='#fd46c8', zorder=-4)
-    ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis'] + Pel_imp[yr]['hydrogen'],label='Imports',color='#f74242',  zorder=-5)
+    ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color='#52de57', zorder=-1)
+    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color='#f4f72e', zorder=-2)
+    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='SMR',color='#7c7c7c', zorder=-3)
+    ax[k].bar(Pel[yr].index, Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL'] + Pel[yr]['electrolysis_PEMEL']+ Pel[yr]['cracking'],label='Methane cracking', color='#33caff', zorder=-4)
+    ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL']+ Pel[yr]['cracking'],label='Tank - Out',color='#fd46c8', zorder=-5)
+    ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR_class_ex'] + Pel[yr]['SMR_class'] + Pel[yr]['SMR_CCS1'] + Pel[yr]['SMR_CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL']+ Pel[yr]['cracking']+ Pel_imp[yr]['hydrogen'],label='Imports',color='#f74242',  zorder=-6)
 
     # H2 concumption
     ax[k].bar(Pel[yr].index, -Conso[yr]['hydrogen'], label='Consumption',color='#ffb233', zorder=-1)
@@ -1021,7 +1035,7 @@ for k, yr in enumerate((2, 3, 4)):
     ax[k].fill_between(x, y3, y4, color='#f74242', label='Imports', linewidth=0)
 
     # Elec consumption
-    y5=Pel[yr].loc[winterDays[0]:winterDays[1]]['electrolysis']
+    y5=Pel[yr].loc[winterDays[0]:winterDays[1]]['electrolysis_AEL']
     ax[k].fill_between(x, y0, y5, color='#52de57', label='Electrolysis', linewidth=0)
     y6=y5+Pel[yr].loc[winterDays[0]:winterDays[1]]['SMR_elec']
     ax[k].fill_between(x, y5, y6, color='#f4f72e', label='eSMR', linewidth=0)
@@ -1067,7 +1081,7 @@ for k, yr in enumerate((2, 3, 4)):
     ax[k].fill_between(x, y3, y4, color='#f74242', label='Imports', linewidth=0)
 
     # Elec consumption
-    y5=Pel[yr].loc[summerDays[0]:summerDays[1]]['electrolysis']
+    y5=Pel[yr].loc[summerDays[0]:summerDays[1]]['electrolysis_AEL']
     ax[k].fill_between(x, y0, y5, color='#52de57', label='Electrolysis - PV', linewidth=0)
     y6=y5+Pel[yr].loc[summerDays[0]:summerDays[1]]['SMR_elec']
     ax[k].fill_between(x, y5, y6, color='#f4f72e', label='eSMR - PV', linewidth=0)
@@ -1136,7 +1150,7 @@ for k, yr in enumerate((2, 3, 4)):
     ax[k].yaxis.grid(linestyle='--', linewidth=0.5)
 
     # H2 production
-    y1=Pel[yr].loc[winterDays[0]:winterDays[1]]['electrolysis']
+    y1=Pel[yr].loc[winterDays[0]:winterDays[1]]['electrolysis_AEL']
     ax[k].fill_between(x, y0, y1, color='#52de57', label='Electrolysis', linewidth=0)
     y2=y1+Pel[yr].loc[winterDays[0]:winterDays[1]]['SMR_elec']+Pel[yr].loc[winterDays[0]:winterDays[1]]['SMR_elecCCS1']
     ax[k].fill_between(x, y1, y2, color='#f4f72e', label='eSMR', linewidth=0)
@@ -1176,7 +1190,7 @@ for k, yr in enumerate((2, 3, 4)):
     ax[k].yaxis.grid(linestyle='--', linewidth=0.5)
 
     # H2 production
-    y1=Pel[yr].loc[summerDays[0]:summerDays[1]]['electrolysis']
+    y1=Pel[yr].loc[summerDays[0]:summerDays[1]]['electrolysis_AEL']
     ax[k].fill_between(x, y0, y1, color='#52de57', label='Electrolysis', linewidth=0)
     y2=y1+Pel[yr].loc[summerDays[0]:summerDays[1]]['SMR_elec']+Pel[yr].loc[summerDays[0]:summerDays[1]]['SMR_elecCCS1']
     ax[k].fill_between(x, y1, y2, color='#f4f72e', label='eSMR', linewidth=0)
@@ -1280,7 +1294,7 @@ os.chdir(OutputFolder)
 os.chdir(SimulName)
 
 c1=Variables['powerCosts_Pvar'].groupby('YEAR_op').sum()
-c2=Variables['capacityCosts_Pvar'].set_index('TECHNOLOGIES').drop(['electrolysis','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1','SMR_class_ex','CCS1','CCS2']).groupby('YEAR_op').sum()
+c2=Variables['capacityCosts_Pvar'].set_index('TECHNOLOGIES').drop(['electrolysis_AEL','electrolysis_PEMEL','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1','SMR_class_ex','CCS1','CCS2']).groupby('YEAR_op').sum()
 c3=Variables['capacityCosts_Pvar'].set_index('TECHNOLOGIES').drop([ 'Solar', 'WindOnShore','WindOffShore']).groupby('YEAR_op').sum()
 c4=Variables['importCosts_Pvar'].loc[Variables['importCosts_Pvar']['RESOURCES']=='electricity'].groupby('YEAR_op').sum()
 c5=Variables['importCosts_Pvar'].loc[Variables['importCosts_Pvar']['RESOURCES']=='gazBio'].groupby('YEAR_op').sum()+Variables['importCosts_Pvar'].loc[Variables['importCosts_Pvar']['RESOURCES']=='gazNat'].groupby('YEAR_op').sum()
@@ -1532,3 +1546,97 @@ marketPrice.loc[(2,slice(None))].mean()
 marketPrice.loc[(3,slice(None))].mean()
 marketPrice.loc[(4,slice(None))].mean()
 elec_var['AjustFac'].loc[(elec_var['AjustFac']['AjustFac']>0)]
+
+#region analyse fonctionnement SMR
+Zones="PACA"
+SimulNameFr=SimulName+'_Fr'
+SimulName=SimulName+'_'+Zones
+
+#Import results
+os.chdir(OutputFolder)
+os.chdir(SimulName)
+v_list = ['capacityInvest_Dvar','transInvest_Dvar','capacity_Pvar','capacityDem_Dvar','capacityDel_Pvar', 'energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar',
+         'stockLevel_Pvar', 'importation_Dvar', 'Cmax_Pvar','carbon_Pvar','powerCosts_Pvar','capacityCosts_Pvar','importCosts_Pvar','storageCosts_Pvar','turpeCosts_Pvar','Pmax_Pvar','max_PS_Dvar','carbonCosts_Pvar']
+Variables = {v : pd.read_csv(v + '_' + SimulName + '.csv').drop(columns='Unnamed: 0') for v in v_list}
+carbon_content=pd.read_csv('carbon_' + SimulName + '.csv')
+os.chdir('..')
+os.chdir(SimulNameFr)
+elec_price=pd.read_csv('elecPrice_' + SimulNameFr + '.csv')
+marketPrice=pd.read_csv('marketPrice.csv')
+os.chdir('..')
+os.chdir(SimulName)
+
+Power=Variables['power_Dvar'].pivot(index=['YEAR_op','TIMESTAMP'],columns='TECHNOLOGIES',values='power_Dvar')[['SMR_class','SMR_class_ex','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']]
+Capa=Variables['capacity_Pvar'].pivot(index='YEAR_op',columns='TECHNOLOGIES',values='capacity_Pvar')[['SMR_class','SMR_class_ex','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']]
+
+YEAR=list(Power.index.get_level_values('YEAR_op').unique())
+TIMESTAMP=list(Power.index.get_level_values('TIMESTAMP').unique())
+TECHNO=['SMR_class','SMR_CCS','SMR_elec','SMR_elecCCS']
+
+PWR=pd.DataFrame(Power['SMR_class']+Power['SMR_class_ex']).rename(columns={0:'SMR_class'})
+PWR['SMR_CCS']=Power['SMR_CCS1']+Power['SMR_CCS2']
+PWR['SMR_elec']=Power['SMR_elec']
+PWR['SMR_elecCCS']=Power['SMR_elecCCS1']
+
+CP=pd.DataFrame(Capa['SMR_class']+Capa['SMR_class_ex']).rename(columns={0:'SMR_class'})
+CP['SMR_CCS']=Capa['SMR_CCS1']+Capa['SMR_CCS2']
+CP['SMR_elec']=Capa['SMR_elec']
+CP['SMR_elecCCS']=Capa['SMR_elecCCS1']
+
+Runs={2:{},3:{},4:{}}
+Starts={2:{},3:{},4:{}}
+Fails={2:{},3:{},4:{}}
+Fails_percent={2:{},3:{},4:{}}
+Gas_loss={2:{},3:{},4:{}}
+Elec_loss={2:{},3:{},4:{}}
+Gas_loss_percent={2:{},3:{},4:{}}
+Elec_loss_percent={2:{},3:{},4:{}}
+
+for y in YEAR:
+    run=0
+    start=0
+    fail=0
+    for tech in TECHNO:
+        if CP.loc[y][tech]>0:
+            run = PWR.loc[PWR[tech] > 0][tech].loc[(y, slice(None))].count()
+            Runs[y][tech]=run
+            if tech in ['SMR_class','SMR_elec']:
+                temp=pd.DataFrame((PWR.loc[PWR[tech]>0][tech]/CP.loc[y][tech]<0.2).loc[(y,slice(None))])
+                fail=temp.loc[temp[tech]==True][tech].count()
+                Fails[y][tech]=fail
+            if tech in ['SMR_CCS','SMR_elecCCS']:
+                temp=pd.DataFrame((PWR.loc[PWR[tech]>0][tech]/CP.loc[y][tech]<0.5).loc[(y,slice(None))])
+                fail=temp.loc[temp[tech]==True][tech].count()
+                Fails[y][tech]=fail
+            for t in TIMESTAMP[1:]:
+                if (PWR.loc[(y,t-1)][tech]==0 and PWR.loc[(y,t)][tech]>0):
+                    start+=1
+            Starts[y][tech]=start
+            Fails_percent[y][tech]=Fails[y][tech]/Runs[y][tech]*100
+            if tech in ['SMR_class','SMR_CCS']:
+                Gas_loss[y][tech]=round(Starts[y][tech]*1.05,2)
+                Gas_loss_percent[y][tech]=round(Starts[y][tech]*1.05*100/(Starts[y][tech]*1.05+Runs[y][tech]*1.8),2)
+            if tech in ['SMR_elec', 'SMR_elecCCS']:
+                Elec_loss[y][tech]=round(Starts[y][tech]*0.75,2)
+                Elec_loss_percent[y][tech]=round(Starts[y][tech]*0.75/(Starts[y][tech]*0.75+Runs[y][tech]*0.75)*100,2)
+
+Results=pd.DataFrame([[a,b] for a in YEAR for b in TECHNO],columns=['YEAR','TECHNOLOGIES']).set_index(['YEAR','TECHNOLOGIES'])
+
+for y in YEAR:
+    for tech in TECHNO:
+        if CP.loc[y][tech]>0:
+            Results.loc[(y,tech),'Runs']=Runs[y][tech]
+            Results.loc[(y, tech), 'Starts'] = Starts[y][tech]
+            Results.loc[(y, tech), 'Fails'] = Fails[y][tech]
+            Results.loc[(y, tech), 'Fails_percent'] = Fails_percent[y][tech]
+            if tech in ['SMR_class','SMR_CCS']:
+                Results.loc[(y, tech), 'Gas_loss'] = Gas_loss[y][tech]
+                Results.loc[(y, tech), 'Gas_loss_percent'] = Gas_loss_percent[y][tech]
+            if tech in ['SMR_elec', 'SMR_elecCCS']:
+                Results.loc[(y, tech), 'Elec_loss'] = Elec_loss[y][tech]
+                Results.loc[(y, tech), 'Elec_loss_percent'] = Elec_loss_percent[y][tech]
+
+
+Results.to_csv('SMR_analysis_'+SimulName+'.csv',index=True)
+
+#endregion

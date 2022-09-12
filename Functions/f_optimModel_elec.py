@@ -111,7 +111,6 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
         return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
     model.AjustCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=AjustDef_rule)
 
-
     def meritDef_rule(model,y,tech):
         if tech == 'Solar' :
             return model.varCosts[y-1,tech] + model.AjustFac[y,tech] <= model.varCosts[y-1,'WindOnShore'] + model.AjustFac[y,'WindOnShore']
@@ -128,5 +127,10 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
         else :
             return Constraint.Skip
     model.meritCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=meritDef_rule)
+
+    def Lim_rule(model,y,tech):
+        return model.AjustFac[y,tech] <= 100
+    model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
+
 
     return model;

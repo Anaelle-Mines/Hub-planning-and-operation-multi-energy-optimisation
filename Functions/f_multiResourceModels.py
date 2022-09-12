@@ -9,7 +9,7 @@ import pandas as pd
 import mosek
 from Functions.f_optimization import *
 
-def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],Selected_STECH=['Battery','tankH2_G'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe'):
+def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis_PEMEL','electrolysis_AEL','cracking'],Selected_STECH=['Battery','tankH2_G'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe'):
 
     #### reading CSV files
 
@@ -41,7 +41,7 @@ def loadingParameters(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore'
     TechParameters.loc["OldNuke", 'RampConstraintPlus'] = 0.02  ## a bit strong to put in light the effect
     return areaConsumption,availabilityFactor,TechParameters,conversionFactor,ResParameters,Calendrier,StorageParameters,storageFactors,Economics
 
-def loadingParameters_MultiTempo(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],Selected_STECH=['Battery','STEP'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe',dic_eco = {2020:1,2030:2,2040:3,2050:4}):
+def loadingParameters_MultiTempo(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis_PEMEL','electrolysis_AEL','cracking'],Selected_STECH=['Battery','STEP'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe',dic_eco = {2020:1,2030:2,2040:3,2050:4}):
     #### reading CSV files
 
     areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) +'_' + str(Zones)+'_TIMExRESxYEAR.csv',
@@ -80,7 +80,7 @@ def loadingParameters_MultiTempo(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'W
 
     return areaConsumption,availabilityFactor,TechParameters,conversionFactor,ResParameters,Calendrier,StorageParameters,storageFactors,Economics,CarbonTax
 
-def loadingParameters_MultiTempo_SMR(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis'],Selected_STECH=['Battery','STEP'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe',dic_eco = {2020:1,2030:2,2040:3,2050:4}):
+def loadingParameters_MultiTempo_SMR(Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'HydroReservoir', 'HydroRiver', 'TAC', 'CCG', 'pac','electrolysis_PEMEL','electrolysis_AEL','cracking'],Selected_STECH=['Battery','STEP'],InputFolder = 'Data/Input/',Zones = "PACA",year = 2013,PrixRes='fixe',dic_eco = {2020:1,2030:2,2040:3,2050:4}):
     #### reading CSV files
 
     areaConsumption = pd.read_csv(InputFolder + 'areaConsumption' + str(year) +'_' + str(Zones)+'_SMR_TIMExRESxYEAR.csv',
@@ -1199,12 +1199,16 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     # storageCosts definition Constraint
     def storageCostsDef_rule(model,y,s_tech):  # EQ forall s_tech in STOCK_TECHNO
         r=Economics.loc['discountRate'].value
-        factor1=r/((1+r)*(1-(1+r)**-model.storagelifeSpan[y-1,s_tech]))
-        factor2=(1+r)**(-10*(y-1))
-        factor3=(1+r)**(-10*y)
-        return (model.storageEnergyInvestCost[y-1,s_tech] * model.Cmax_Pvar[y,s_tech] +
-                model.storagePowerInvestCost[y-1,s_tech] * model.Pmax_Pvar[y,s_tech]) * factor1 * factor2 \
-               + model.storageOperationCost[y-1,s_tech]*factor3* model.Pmax_Pvar[y,s_tech]  == model.storageCosts_Pvar[y,s_tech]
+        def factor1(r, yi):
+            return r / ((1 + r) * (1 - (1 + r) ** -model.storagelifeSpan[yi, s_tech]))
+        def factor2(r, y):
+            return (1 + r) ** (-10 * (y - 1))
+        def factor3(r, y):
+            return (1 + r) ** (-10 * y)
+        YI = YEAR_list[0:y - 1]
+        return sum((model.storageEnergyInvestCost[yi,s_tech] * model.Cmax_Pvar[yi+1,s_tech] +
+                model.storagePowerInvestCost[yi,s_tech] * model.Pmax_Pvar[yi+1,s_tech]) * factor1(r, yi) * factor2(r, y) for yi in YI) \
+               + model.storageOperationCost[y-1,s_tech]*factor3(r,y)* model.Pmax_Pvar[y,s_tech]  == model.storageCosts_Pvar[y,s_tech]
     model.storageCostsCtr = Constraint(model.YEAR_op,model.STOCK_TECHNO, rule=storageCostsDef_rule)
 
     # Storage max capacity constraint

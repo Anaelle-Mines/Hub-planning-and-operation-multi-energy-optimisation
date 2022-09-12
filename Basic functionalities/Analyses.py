@@ -133,7 +133,7 @@ test['>1785'].sum()/1000
 
 #region import
 # Ref
-SimulName1='2022-5-23_Ref_bis_PACA'
+SimulName1='2022-9-7_Ref_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName1)
 Capa1=pd.read_csv('capacity_Pvar_' + SimulName1 + '.csv').drop(columns='Unnamed: 0')
@@ -144,7 +144,7 @@ os.chdir('..')
 os.chdir('..')
 
 EnR_loadFactor1={y : (Power1.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa1.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor1={y : (Power1.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa1.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor1={y : (Power1.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa1.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df1={y:Capa1.loc[Capa1['YEAR_op']==y].drop(columns='YEAR_op') for y in [2,3,4]}
 for y in [2,3,4] : df1[y]['Scenario']='Ref'
 
@@ -156,7 +156,7 @@ dr1={y:pd.DataFrame([EnR1[y],Elec1[y],NatGaz1[y],BioGaz1[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr1[y]['Scenario']='Ref'
 
 # eSMR
-SimulName2='2022-5-23_eSMR_ter_PACA'
+SimulName2='2022-9-7_eSMR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName2)
 Capa2=pd.read_csv('capacity_Pvar_' + SimulName2 + '.csv').drop(columns='Unnamed: 0')
@@ -166,7 +166,7 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 EnR_loadFactor2={y : (Power2.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa2.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor2={y : (Power2.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa2.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor2={y : (Power2.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa2.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df2={y:Capa2.loc[Capa2['YEAR_op']==y].drop(columns='YEAR_op') for y in [2,3,4]}
 for y in [2,3,4] : df2[y]['Scenario']='eSMR'
 
@@ -178,7 +178,7 @@ dr2={y:pd.DataFrame([EnR2[y],Elec2[y],NatGaz2[y],BioGaz2[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr2[y]['Scenario']='eSMR'
 
 # EnR
-SimulName3='2022-5-23_EnR_bis_PACA'
+SimulName3='2022-9-7_EnR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName3)
 Capa3=pd.read_csv('capacity_Pvar_' + SimulName3 + '.csv').drop(columns='Unnamed: 0')
@@ -188,7 +188,7 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 EnR_loadFactor3={y : (Power3.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa3.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor3={y : (Power3.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa3.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor3={y : (Power3.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa3.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df3={y:Capa3.loc[Capa3['YEAR_op']==y].drop(columns='YEAR_op')for y in [2,3,4]}
 for y in [2,3,4]:df3[y]['Scenario']='EnR'
 
@@ -200,7 +200,7 @@ dr3={y:pd.DataFrame([EnR3[y],Elec3[y],NatGaz3[y],BioGaz3[y]],index=['EnR','Grid'
 for y in [2,3,4]:dr3[y]['Scenario']='EnR'
 
 # Grid
-SimulName4='2022-5-23_Grid_bis_PACA'
+SimulName4='2022-9-7_Grid_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName4)
 Capa4=pd.read_csv('capacity_Pvar_' + SimulName4 + '.csv').drop(columns='Unnamed: 0')
@@ -210,7 +210,7 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 EnR_loadFactor4={y : (Power4.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa4.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor4={y : (Power4.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa4.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor4={y : (Power4.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa4.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df4={y:Capa4.loc[Capa4['YEAR_op']==y].drop(columns='YEAR_op')for y in [2,3,4]}
 for y in [2,3,4]:df4[y]['Scenario']='Grid'
 
@@ -222,7 +222,7 @@ dr4={y:pd.DataFrame([EnR4[y],Elec4[y],NatGaz4[y],BioGaz4[y]],index=['EnR','Grid'
 for y in [2,3,4]:dr4[y]['Scenario']='Grid'
 
 # Gaz Nat
-SimulName5='2022-5-23_GN_bis_PACA'
+SimulName5='2022-9-7_GN_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName5)
 Capa5=pd.read_csv('capacity_Pvar_' + SimulName5 + '.csv').drop(columns='Unnamed: 0')
@@ -232,7 +232,7 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 EnR_loadFactor5={y : (Power5.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa5.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor5={y : (Power5.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa5.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor5={y : (Power5.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa5.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df5={y:Capa5.loc[Capa5['YEAR_op']==y].drop(columns='YEAR_op') for y in [2,3,4]}
 for y in [2,3,4] : df5[y]['Scenario']='GazNat'
 
@@ -244,7 +244,7 @@ dr5={y:pd.DataFrame([EnR5[y],Elec5[y],NatGaz5[y],BioGaz5[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr5[y]['Scenario']='GazNat'
 
 # Gaz Bio
-SimulName6='2022-5-23_BG_tetra_PACA'
+SimulName6='2022-9-7_BG_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName6)
 Capa6=pd.read_csv('capacity_Pvar_' + SimulName6 + '.csv').drop(columns='Unnamed: 0')
@@ -254,7 +254,7 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 EnR_loadFactor6={y : (Power6.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa6.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
-H2_loadFactor6={y : (Power6.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa6.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+H2_loadFactor6={y : (Power6.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa6.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
 df6={y: Capa6.loc[Capa6['YEAR_op']==y].drop(columns='YEAR_op') for y in [2,3,4]}
 for y in [2,3,4] : df6[y]['Scenario']='GazBio'
 
@@ -265,6 +265,29 @@ EnR6={y:(Power6.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAM
 dr6={y:pd.DataFrame([EnR6[y],Elec6[y],NatGaz6[y],BioGaz6[y]],index=['EnR','Grid','gazNat','biogaz'],columns=['energy']).reset_index() for y in [2,3,4]}
 for y in [2,3,4] : dr6[y]['Scenario']='GazBio'
 
+
+# EnR+
+SimulName7='2022-9-7_EnR+_new_PACA'
+os.chdir(OutputFolder)
+os.chdir(SimulName7)
+Capa7=pd.read_csv('capacity_Pvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+Power7=pd.read_csv('power_Dvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+Import7=pd.read_csv('importation_Dvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+os.chdir('..')
+os.chdir('..')
+os.chdir('..')
+EnR_loadFactor7={y : (Power7.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa7.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['WindOnShore','Solar','WindOffShore']].fillna(0)  for y in [2,3,4]}
+H2_loadFactor7={y : (Power7.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']/(Capa7.set_index(['YEAR_op','TECHNOLOGIES'])['capacity_Pvar']*8760)).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values=0).loc[y,['electrolysis_PEMEL','electrolysis_AEL','SMR_class_ex','SMR_class','SMR_CCS1','SMR_CCS2','SMR_elec','SMR_elecCCS1']].fillna(0) for y in [2,3,4]}
+df7={y: Capa7.loc[Capa7['YEAR_op']==y].drop(columns='YEAR_op') for y in [2,3,4]}
+for y in [2,3,4] : df7[y]['Scenario']='EnR+'
+
+Elec7={y:Import7.pivot(index=['YEAR_op','TIMESTAMP'],columns='RESOURCES',values='importation_Dvar').loc[y,['electricity']].sum()['electricity'] for y in [2,3,4]}
+NatGaz7={y:Import7.pivot(index=['YEAR_op','TIMESTAMP'],columns='RESOURCES',values='importation_Dvar').loc[y,['gazNat']].sum()['gazNat'] for y in [2,3,4]}
+BioGaz7={y:Import7.pivot(index=['YEAR_op','TIMESTAMP'],columns='RESOURCES',values='importation_Dvar').loc[y,['gazBio']].sum()['gazBio'] for y in [2,3,4]}
+EnR7={y:(Power7.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values='power_Dvar').loc[y,['WindOnShore','Solar','WindOffShore']].sum() for y in [2,3,4]}
+dr7={y:pd.DataFrame([EnR7[y],Elec7[y],NatGaz7[y],BioGaz7[y]],index=['EnR','Grid','gazNat','biogaz'],columns=['energy']).reset_index() for y in [2,3,4]}
+for y in [2,3,4] : dr6[y]['Scenario']='EnR+'
+
 #endregion
 
 #region Tracé mix prod H2 et EnR
@@ -273,18 +296,20 @@ year=2050
 dico_an={2030:2,2040:3,2050:4}
 yr=dico_an[year]
 
-df=pd.concat([df1[yr],df2[yr],df3[yr],df4[yr],df5[yr],df6[yr]])
+df=pd.concat([df1[yr],df2[yr],df3[yr],df4[yr],df5[yr],df6[yr],df7[yr]])
 df=df.pivot(columns='TECHNOLOGIES',values='capacity_Pvar',index='Scenario').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df['SMR w/o CCUS']+=df['SMR_class_ex']
 
-dr=pd.concat([dr1[yr],dr2[yr],dr3[yr],dr4[yr],dr5[yr],dr6[yr]])
+dr=pd.concat([dr1[yr],dr2[yr],dr3[yr],dr4[yr],dr5[yr],dr6[yr],dr7[yr]])
 dr=dr.pivot(columns='index',values='energy',index='Scenario')
 
 EnR_loadFactor=pd.DataFrame(EnR_loadFactor1[yr]).rename(columns={yr:'Ref'})
@@ -293,6 +318,8 @@ EnR_loadFactor['EnR']=EnR_loadFactor3[yr]
 EnR_loadFactor['Grid']=EnR_loadFactor4[yr]
 EnR_loadFactor['GazNat']=EnR_loadFactor5[yr]
 EnR_loadFactor['GazBio']=EnR_loadFactor6[yr]
+EnR_loadFactor['EnR+']=EnR_loadFactor7[yr]
+
 
 H2_loadFactor=pd.DataFrame(H2_loadFactor1[yr]).rename(columns={yr:'Ref'})
 H2_loadFactor['eSMR']=H2_loadFactor2[yr]
@@ -300,6 +327,7 @@ H2_loadFactor['EnR']=H2_loadFactor3[yr]
 H2_loadFactor['Grid']=H2_loadFactor4[yr]
 H2_loadFactor['GazNat']=H2_loadFactor5[yr]
 H2_loadFactor['GazBio']=H2_loadFactor6[yr]
+H2_loadFactor['EnR+']=H2_loadFactor7[yr]
 
 fig, ax = plt.subplots(3,1,sharex=True,figsize=(8, 8))
 width= 0.30
@@ -316,22 +344,29 @@ ax[0].bar(x - width/2,l2,width, bottom=l1,color='#005E9E', label="SMR + CCUS 50%
 #Create turquoise bleu Bar
 l3=list(df['SMR + CCUS 75%']/1000)
 ax[0].bar(x - width/2,l3,width, bottom=[i+j for i,j in zip(l1,l2)], color=col[9] ,label="SMR + CCUS 75%")
+# Create pink bar
+l4=list(df['Methane cracking']/1000)
+ax[0].bar(x - width/2,l4,width, bottom=[i+j+k for i,j,k in zip(l1,l2,l3)], color=col[6],label="Methane cracking")
 #Create orange Bar
-l4=list(df['eSMR w/o CCUS']/1000)
-ax[0].bar(x - width/2,l4,width, bottom=[i+j+k for i,j,k in zip(l1,l2,l3)], color=col[1],label="eSMR w/o CCUS")
+l5=list(df['eSMR w/o CCUS']/1000)
+ax[0].bar(x - width/2,l5,width, bottom=[i+j+k+l for i,j,k,l in zip(l1,l2,l3,l4)], color=col[1],label="eSMR w/o CCUS")
 # Create yellow bar
-l5=list(df['eSMR + CCUS 50%']/1000)
-ax[0].bar(x - width/2,l5,width, bottom=[i+j+k+l for i,j,k,l in zip(l1,l2,l3,l4)], color='#F8B740',label="eSMR + CCUS 50%")
+l6=list(df['eSMR + CCUS 50%']/1000)
+ax[0].bar(x - width/2,l6,width, bottom=[i+j+k+l+m for i,j,k,l,m in zip(l1,l2,l3,l4,l5)], color='#F8B740',label="eSMR + CCUS 50%")
 # Create green Bars
-l6=list(df['Water electrolysis']/1000)
-ax[0].bar(x + width/2,l6,width, color=col[2],label="Water electrolysis")
+l7=list(df['Alkalin electrolysis']/1000 + df['PEM electrolysis']/1000)
+ax[0].bar(x + width/2,l7,width, color=col[2],label="Water electrolysis")
 
 # Create red bar
-l7=list(df['Solar']/1000)
-ax[1].bar(x ,l7,width, color=col[3],label="Solar")
+l8=list(df['Solar']/1000)
+ax[1].bar(x ,l8,width, color=col[3],label="Solar")
 # Create violet bar
-l8=list(df['WindOnShore']/1000)
-ax[1].bar(x,l8,width,  bottom=l7,color=col[4],label="Wind")
+l9=list(df['WindOnShore']/1000)
+ax[1].bar(x,l9,width,  bottom=l8,color=col[4],label="Wind Onshore")
+# Create pink bar
+l10=list(df['WindOffShore']/1000)
+ax[1].bar(x,l10,width,  bottom=[i+j for i,j in zip(l8,l9)],color=col[6],label="Wind Offshore")
+
 
 # Create brown Bar
 l1=list(dr['gazNat']/1000000)
@@ -349,7 +384,7 @@ ax[2].bar(x + width/2,l4,width, bottom=l3, color='#2BA9FF',label="Local renewabl
 
 #add Load factors
 for i in x :
-    ax[0].text((x + width/2)[i], l6[i]/2, str(round(H2_loadFactor[labels[i]]['electrolysis']*100))+'%',ha='center')
+    ax[0].text((x + width/2)[i], l6[i]/2, str(round(H2_loadFactor[labels[i]]['electrolysis_AEL']*100))+'%',ha='center')
     #ax[0].text((x - width / 2)[i], l1[i] / 2, str(round(H2_loadFactor[labels[i]]['SMR_class_ex'] * 100)) + '%',ha='center')
     #ax[1].text(x[i], l7[i]/2, str(round(EnR_loadFactor[labels[i]]['Solar'] * 100)) + '%', ha='center')
     #ax[1].text(x[i], l7[i]+l8[i]/2, str(round(EnR_loadFactor[labels[i]]['WindOnShore'] * 100)) + '%', ha='center')

@@ -76,18 +76,23 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
         techno.loc[(yr, 'Coal_p'), 'investCost'] = 1100000
         techno.loc[(yr, 'Coal_p'), 'operationCost'] = 36000
 
-        # EnR
+    # EnR
     for tech in ['Solar','WindOnShore','WindOffShore']:
         techno.loc[(2040,tech),'investCost']=techno.loc[(2020,tech),'investCost']*Param_list['CAPEX_EnR'][Scenario_list[Scenario]['CAPEX_EnR']]
         techno.loc[(2030,tech),'investCost']=(techno.loc[(2020,tech),'investCost']+techno.loc[(2040,tech),'investCost'])/2
         techno.loc[(2040,tech),'operationCost']=techno.loc[(2020,tech),'operationCost']*Param_list['CAPEX_EnR'][Scenario_list[Scenario]['CAPEX_EnR']]
         techno.loc[(2030,tech),'operationCost']=(techno.loc[(2020,tech),'operationCost']+techno.loc[(2040,tech),'operationCost'])/2
 
-    # Electrolysis / eSMR
-    techno.loc[(2040,'electrolysis'),'investCost']=Param_list['CAPEX_elec'][Scenario_list[Scenario]['CAPEX_elec']]*1000
-    techno.loc[(2030,'electrolysis'),'investCost']=(techno.loc[(2020,'electrolysis'),'investCost']+techno.loc[(2040,'electrolysis'),'investCost'])/2
-    techno.loc[(2040,'electrolysis'),'operationCost']=techno.loc[(2040,'electrolysis'),'investCost']*0.05
-    techno.loc[(2030,'electrolysis'),'operationCost']=techno.loc[(2030,'electrolysis'),'investCost']*0.05
+    # Electrolysis
+    techno.loc[(2040,'electrolysis_PEMEL'),'investCost']=techno.loc[(2020,'electrolysis_PEMEL'),'investCost']*(Param_list['CAPEX_elec'][Scenario_list[Scenario]['CAPEX_elec']]-0.15)
+    techno.loc[(2030,'electrolysis_PEMEL'),'investCost']=(techno.loc[(2020,'electrolysis_PEMEL'),'investCost']+techno.loc[(2040,'electrolysis_PEMEL'),'investCost'])/2
+    techno.loc[(2040,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2040,'electrolysis_PEMEL'),'investCost']*0.05
+    techno.loc[(2030,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2030,'electrolysis_PEMEL'),'investCost']*0.05
+    techno.loc[(2040,'electrolysis_AEL'),'investCost']=techno.loc[(2020,'electrolysis_AEL'),'investCost']*Param_list['CAPEX_elec'][Scenario_list[Scenario]['CAPEX_elec']]
+    techno.loc[(2030,'electrolysis_AEL'),'investCost']=(techno.loc[(2020,'electrolysis_AEL'),'investCost']+techno.loc[(2040,'electrolysis_AEL'),'investCost'])/2
+    techno.loc[(2040,'electrolysis_AEL'),'operationCost']=techno.loc[(2040,'electrolysis_AEL'),'investCost']*0.03
+    techno.loc[(2030,'electrolysis_AEL'),'operationCost']=techno.loc[(2030,'electrolysis_AEL'),'investCost']*0.03
+
 
     # eSMR
     techno.loc[(2040,'SMR_elec'),'investCost']=Param_list['CAPEX_eSMR'][Scenario_list[Scenario]['CAPEX_eSMR']]*1000
@@ -119,7 +124,7 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
 
 def capacity_Lim(Scenario,techno,Stechno,ElecMix,Param_list,Scenario_list):
     TECH_Fr=['OldNuke','Solar', 'WindOnShore','WindOffShore','CCG','NewNuke','WindOffShore','TAC','HydroRiver','HydroReservoir','curtailment','Interco','Coal_p']
-    TECH_SMR=['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis']
+    TECH_SMR=['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
     STECH_Fr=['Battery','STEP']
     STECH_SMR=['Battery','tankH2_G']
     technoFr=techno.loc[slice(None),TECH_Fr,:]
@@ -171,15 +176,18 @@ def capacity_Lim(Scenario,techno,Stechno,ElecMix,Param_list,Scenario_list):
                     technoSMR.loc[(yr, tech), 'minCapacity'] = 0
                     technoSMR.loc[(yr, tech), 'maxCapacity'] = 0
                     technoSMR.loc[(yr, tech), 'capacityLim'] = 320
-            elif tech == 'SMR_elec':
-                if yr==2020 :
-                    technoSMR.loc[(yr, tech), 'minCapacity'] = 0
-                    technoSMR.loc[(yr, tech), 'maxCapacity'] = 0
-                    technoSMR.loc[(yr, tech), 'capacityLim'] = 0
-                else :
-                    technoSMR.loc[(yr, tech), 'minCapacity'] = 0
-                    technoSMR.loc[(yr, tech), 'maxCapacity'] = 100000
-                    technoSMR.loc[(yr, tech), 'capacityLim'] = 100000
+            elif tech == 'Solar':
+                technoSMR.loc[(yr, tech), 'minCapacity'] = 0
+                technoSMR.loc[(yr, tech), 'capacityLim'] = Param_list['Local_RE'][Scenario_list[Scenario]['Local_RE']][0]
+                technoSMR.loc[(yr, tech), 'maxCapacity'] = technoSMR.loc[(yr, tech), 'capacityLim']*2/3
+            elif tech == 'WindOnShore':
+                technoSMR.loc[(yr, tech), 'minCapacity'] = 0
+                technoSMR.loc[(yr, tech), 'capacityLim'] = Param_list['Local_RE'][Scenario_list[Scenario]['Local_RE']][1]
+                technoSMR.loc[(yr, tech), 'maxCapacity'] = technoSMR.loc[(yr, tech), 'capacityLim']*2/3
+            elif tech == 'WindOffShore':
+                technoSMR.loc[(yr, tech), 'minCapacity'] = 0
+                technoSMR.loc[(yr, tech), 'capacityLim'] = Param_list['Local_RE'][Scenario_list[Scenario]['Local_RE']][2]
+                technoSMR.loc[(yr, tech), 'maxCapacity'] = technoSMR.loc[(yr, tech), 'capacityLim']*2/3
             else :
                 technoSMR.loc[(yr, tech), 'minCapacity'] = 0
                 technoSMR.loc[(yr, tech), 'maxCapacity'] = 100000
