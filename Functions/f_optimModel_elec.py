@@ -77,7 +77,7 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     # Variables    #
     ################
 
-    model.AjustFac = Var(model.YEAR_op, model.TECHNOLOGIES,domain=NonNegativeReals)
+    model.AjustFac = Var(model.YEAR_op, model.TECHNOLOGIES,domain=NonNegativeReals,initialize=0)
     model.Revenus = Var(model.YEAR_op,model.TECHNOLOGIES,domain=NonNegativeReals)
     model.TotalCosts = Var(model.YEAR_op,model.TECHNOLOGIES,domain=NonNegativeReals)
 

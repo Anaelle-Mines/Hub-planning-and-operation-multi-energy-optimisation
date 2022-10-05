@@ -998,11 +998,11 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     model.storageConsumption_Pvar=Var(model.YEAR_op,model.TIMESTAMP,model.RESOURCES,model.STOCK_TECHNO,domain=NonNegativeReals) ### Energy consumed the in a storage mean at time t (other than the one stored)
 
     # Investment
-    model.capacityInvest_Dvar = Var(model.YEAR_invest,model.TECHNOLOGIES, domain=NonNegativeReals)  ### Capacity of a conversion mean invested in year y
+    model.capacityInvest_Dvar = Var(model.YEAR_invest,model.TECHNOLOGIES, domain=NonNegativeReals,initialize=0)  ### Capacity of a conversion mean invested in year y
     model.capacityDel_Pvar = Var(model.YEAR_invest,model.YEAR_invest,model.TECHNOLOGIES,domain=NonNegativeReals) ### Capacity of a conversion mean that is removed each year y
     model.transInvest_Dvar = Var(model.YEAR_invest,model.TECHNOLOGIES,model.TECHNOLOGIES,domain=NonNegativeReals) ### Transformation of technologies 1 into technologies 2
     model.capacityDem_Dvar=Var(model.YEAR_invest,model.YEAR_invest,model.TECHNOLOGIES,domain=NonNegativeReals)
-    model.capacity_Pvar =  Var(model.YEAR_op,model.TECHNOLOGIES, domain=NonNegativeReals)
+    model.capacity_Pvar =  Var(model.YEAR_op,model.TECHNOLOGIES, domain=NonNegativeReals,initialize=0)
     model.CmaxInvest_Dvar=Var(model.YEAR_invest,model.STOCK_TECHNO,domain=NonNegativeReals) # Maximum capacity of a storage mean
     model.PmaxInvest_Dvar=Var(model.YEAR_invest,model.STOCK_TECHNO,domain=NonNegativeReals) # Maximum flow of energy in/out of a storage mean
     model.Cmax_Pvar = Var(model.YEAR_op, model.STOCK_TECHNO,domain=NonNegativeReals)  # Maximum capacity of a storage mean
@@ -1143,6 +1143,18 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
         else :
             return sum(model.capacityDem_Dvar[yi,yt,tech] for yt in model.YEAR_invest) <= model.capacityInvest_Dvar[yi,tech]
     model.CapacityDemUBCtr = Constraint(model.YEAR_invest, model.YEAR_invest,model.TECHNOLOGIES, rule=CapacityDemUB_rule)
+
+    # def CapacityDemUP_rule(model,y, tech):
+    #     if y == 1:
+    #         return Constraint.Skip
+    #     else :
+    #         if tech in ['SMR_class','SMR_class_ex','SMR_elec'] :
+    #             return sum(model.capacityDem_Dvar[yi,y,tech] for yi in model.YEAR_invest) >= model.capacity_Pvar[y,tech] - sum(model.power_Dvar[y,t,tech] for t in TIMESTAMP)/8760/0.2
+    #         elif tech in ['SMR_CCS1','SMR_CCS2','SMR_elecCCS1'] :
+    #             return sum(model.capacityDem_Dvar[yi, y, tech] for yi in model.YEAR_invest) >= model.capacity_Pvar[y,tech] - sum(model.power_Dvar[y,t, tech] for t in TIMESTAMP) / 8760 / 0.5
+    #         else :
+    #             return Constraint.Skip
+    # model.CapacityDemUPCtr = Constraint(model.YEAR_invest,model.TECHNOLOGIES, rule=CapacityDemUP_rule)
 
     def CapacityDel_rule(model,yi,y, tech):
         if model.yearStart[y,tech]>=yi :
@@ -1286,7 +1298,7 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
 
     if "maxCapacity" in TechParameters:
         def maxCapacity_rule(model, y,tech):  # INEQ forall t, tech
-            return model.maxCapacity[y,tech] >= model.capacityInvest_Dvar[y,tech]
+            return model.maxCapacity[y, tech] >= model.capacityInvest_Dvar[y, tech]
         model.maxCapacityCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=maxCapacity_rule)
 
     if "minCapacity" in TechParameters:

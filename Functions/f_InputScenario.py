@@ -100,6 +100,11 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
     techno.loc[(2040,'SMR_elec'),'operationCost']=techno.loc[(2040,'SMR_elec'),'investCost']*0.05
     techno.loc[(2030,'SMR_elec'),'operationCost']=techno.loc[(2030,'SMR_elec'),'investCost']*0.05
 
+    # cracking
+    techno.loc[(2020, 'cracking'), 'powerCost'] = -Param_list['BlackC_price'][Scenario_list[Scenario]['BlackC_price']]
+    techno.loc[(2030, 'cracking'), 'powerCost'] = -Param_list['BlackC_price'][Scenario_list[Scenario]['BlackC_price']]
+    techno.loc[(2040,'cracking'),'powerCost'] = -Param_list['BlackC_price'][Scenario_list[Scenario]['BlackC_price']]
+
     # CCS
     for tech in ['CCS1','CCS2']:
         techno.loc[(2040,tech),'investCost']=techno.loc[(2020,tech),'investCost']*Param_list['CAPEX_CCS'][Scenario_list[Scenario]['CAPEX_CCS']]
@@ -220,7 +225,7 @@ def Res_Price(Scenario,Res_ref,marketPrice,carbonContent,Param_list,Scenario_lis
 
 def create_data(Scenario,ScenarioName,Scenario_list,Param_list,ElecMix,solver='mosek',InputFolder = 'Data/Input/',OutputFolder = 'Data/output/'):
 
-    ImportFolder = 'Data/Input_reference/'
+    ImportFolder = 'Data/Input_reference_test2018/'
     areaConsumption, areaConsumptionSMR, availabilityFactorFr, availabilityFactorPACA, Calendrier, Convfac, sConvfac, Economics, Stechno_ref, techno_ref, Res_ref, marketPrice_ref, carbon_ref = loading_reference(ImportFolder)
     carbonTax_ref = {2: 0.1, 3: 0.115, 4: 0.13}
 

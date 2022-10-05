@@ -133,7 +133,7 @@ test['>1785'].sum()/1000
 
 #region import
 # Ref
-SimulName1='2022-9-7_Ref_new_PACA'
+SimulName1='2022-9-12_Ref_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName1)
 Capa1=pd.read_csv('capacity_Pvar_' + SimulName1 + '.csv').drop(columns='Unnamed: 0')
@@ -156,7 +156,7 @@ dr1={y:pd.DataFrame([EnR1[y],Elec1[y],NatGaz1[y],BioGaz1[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr1[y]['Scenario']='Ref'
 
 # eSMR
-SimulName2='2022-9-7_eSMR_new_PACA'
+SimulName2='2022-9-13_eSMR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName2)
 Capa2=pd.read_csv('capacity_Pvar_' + SimulName2 + '.csv').drop(columns='Unnamed: 0')
@@ -178,7 +178,7 @@ dr2={y:pd.DataFrame([EnR2[y],Elec2[y],NatGaz2[y],BioGaz2[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr2[y]['Scenario']='eSMR'
 
 # EnR
-SimulName3='2022-9-7_EnR_new_PACA'
+SimulName3='2022-9-12_EnR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName3)
 Capa3=pd.read_csv('capacity_Pvar_' + SimulName3 + '.csv').drop(columns='Unnamed: 0')
@@ -200,7 +200,7 @@ dr3={y:pd.DataFrame([EnR3[y],Elec3[y],NatGaz3[y],BioGaz3[y]],index=['EnR','Grid'
 for y in [2,3,4]:dr3[y]['Scenario']='EnR'
 
 # Grid
-SimulName4='2022-9-7_Grid_new_PACA'
+SimulName4='2022-9-13_Grid_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName4)
 Capa4=pd.read_csv('capacity_Pvar_' + SimulName4 + '.csv').drop(columns='Unnamed: 0')
@@ -222,7 +222,7 @@ dr4={y:pd.DataFrame([EnR4[y],Elec4[y],NatGaz4[y],BioGaz4[y]],index=['EnR','Grid'
 for y in [2,3,4]:dr4[y]['Scenario']='Grid'
 
 # Gaz Nat
-SimulName5='2022-9-7_GN_new_PACA'
+SimulName5='2022-9-13_GN_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName5)
 Capa5=pd.read_csv('capacity_Pvar_' + SimulName5 + '.csv').drop(columns='Unnamed: 0')
@@ -244,7 +244,7 @@ dr5={y:pd.DataFrame([EnR5[y],Elec5[y],NatGaz5[y],BioGaz5[y]],index=['EnR','Grid'
 for y in [2,3,4] : dr5[y]['Scenario']='GazNat'
 
 # Gaz Bio
-SimulName6='2022-9-7_BG_new_PACA'
+SimulName6='2022-9-12_BG_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName6)
 Capa6=pd.read_csv('capacity_Pvar_' + SimulName6 + '.csv').drop(columns='Unnamed: 0')
@@ -265,9 +265,8 @@ EnR6={y:(Power6.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAM
 dr6={y:pd.DataFrame([EnR6[y],Elec6[y],NatGaz6[y],BioGaz6[y]],index=['EnR','Grid','gazNat','biogaz'],columns=['energy']).reset_index() for y in [2,3,4]}
 for y in [2,3,4] : dr6[y]['Scenario']='GazBio'
 
-
 # EnR+
-SimulName7='2022-9-7_EnR+_new_PACA'
+SimulName7='2022-9-12_EnR+_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName7)
 Capa7=pd.read_csv('capacity_Pvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
@@ -286,13 +285,13 @@ NatGaz7={y:Import7.pivot(index=['YEAR_op','TIMESTAMP'],columns='RESOURCES',value
 BioGaz7={y:Import7.pivot(index=['YEAR_op','TIMESTAMP'],columns='RESOURCES',values='importation_Dvar').loc[y,['gazBio']].sum()['gazBio'] for y in [2,3,4]}
 EnR7={y:(Power7.groupby(['YEAR_op','TECHNOLOGIES']).sum().drop(columns='TIMESTAMP')['power_Dvar']).reset_index().pivot(index='YEAR_op',columns='TECHNOLOGIES',values='power_Dvar').loc[y,['WindOnShore','Solar','WindOffShore']].sum() for y in [2,3,4]}
 dr7={y:pd.DataFrame([EnR7[y],Elec7[y],NatGaz7[y],BioGaz7[y]],index=['EnR','Grid','gazNat','biogaz'],columns=['energy']).reset_index() for y in [2,3,4]}
-for y in [2,3,4] : dr6[y]['Scenario']='EnR+'
+for y in [2,3,4] : dr7[y]['Scenario']='EnR+'
 
 #endregion
 
 #region Tracé mix prod H2 et EnR
 
-year=2050
+year=2040
 dico_an={2030:2,2040:3,2050:4}
 yr=dico_an[year]
 
@@ -422,7 +421,7 @@ plt.show()
 
 #region import
 # Ref
-SimulName1='2022-5-23_Ref_bis_PACA'
+SimulName1='2022-9-12_Ref_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName1)
 Capa1=pd.read_csv('capacity_Pvar_' + SimulName1 + '.csv').drop(columns='Unnamed: 0')
@@ -433,19 +432,21 @@ os.chdir('..')
 os.chdir('..')
 
 df1=Capa1.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df1['SMR w/o CCUS']+=df1['SMR_class_ex']
 df1['SMR w CCUS']=df1['SMR + CCUS 50%']+df1['SMR + CCUS 75%']
 df1['eSMR']=df1['eSMR w/o CCUS']+df1['eSMR + CCUS 50%']
 
 # eSMR
-SimulName2='2022-5-23_eSMR_ter_PACA'
+SimulName2='2022-9-13_eSMR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName2)
 Capa2=pd.read_csv('capacity_Pvar_' + SimulName2 + '.csv').drop(columns='Unnamed: 0')
@@ -455,19 +456,21 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 df2=Capa2.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df2['SMR w/o CCUS']+=df2['SMR_class_ex']
 df2['SMR w CCUS']=df2['SMR + CCUS 50%']+df2['SMR + CCUS 75%']
 df2['eSMR']=df2['eSMR w/o CCUS']+df2['eSMR + CCUS 50%']
 
 # EnR
-SimulName3='2022-5-23_EnR_bis_PACA'
+SimulName3='2022-9-12_EnR_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName3)
 Capa3=pd.read_csv('capacity_Pvar_' + SimulName3 + '.csv').drop(columns='Unnamed: 0')
@@ -477,19 +480,21 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 df3=Capa3.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df3['SMR w/o CCUS']+=df3['SMR_class_ex']
 df3['SMR w CCUS']=df3['SMR + CCUS 50%']+df3['SMR + CCUS 75%']
 df3['eSMR']=df3['eSMR w/o CCUS']+df3['eSMR + CCUS 50%']
 
 # Grid
-SimulName4='2022-5-23_Grid_bis_PACA'
+SimulName4='2022-9-13_Grid_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName4)
 Capa4=pd.read_csv('capacity_Pvar_' + SimulName4 + '.csv').drop(columns='Unnamed: 0')
@@ -499,19 +504,21 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 df4=Capa4.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df4['SMR w/o CCUS']+=df4['SMR_class_ex']
 df4['SMR w CCUS']=df4['SMR + CCUS 50%']+df4['SMR + CCUS 75%']
 df4['eSMR']=df4['eSMR w/o CCUS']+df4['eSMR + CCUS 50%']
 
 # Gaz Nat
-SimulName5='2022-5-23_GN_bis_PACA'
+SimulName5='2022-9-13_GN_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName5)
 Capa5=pd.read_csv('capacity_Pvar_' + SimulName5 + '.csv').drop(columns='Unnamed: 0')
@@ -521,19 +528,21 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 df5=Capa5.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df5['SMR w/o CCUS']+=df5['SMR_class_ex']
 df5['SMR w CCUS']=df5['SMR + CCUS 50%']+df5['SMR + CCUS 75%']
 df5['eSMR']=df5['eSMR w/o CCUS']+df5['eSMR + CCUS 50%']
 
 # Gaz Bio
-SimulName6='2022-5-23_BG_tetra_PACA'
+SimulName6='2022-9-12_BG_new_PACA'
 os.chdir(OutputFolder)
 os.chdir(SimulName6)
 Capa6=pd.read_csv('capacity_Pvar_' + SimulName6 + '.csv').drop(columns='Unnamed: 0')
@@ -543,16 +552,42 @@ os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 df6=Capa6.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
-    "electrolysis": "Water electrolysis",
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
     'SMR_class': "SMR w/o CCUS",
     'SMR_CCS1':  'SMR + CCUS 50%',
     'SMR_CCS2':  'SMR + CCUS 75%',
     'SMR_elec': 'eSMR w/o CCUS',
-    'SMR_elecCCS1': 'eSMR + CCUS 50%'
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
 }).fillna(0)
 df6['SMR w/o CCUS']+=df6['SMR_class_ex']
 df6['SMR w CCUS']=df6['SMR + CCUS 50%']+df6['SMR + CCUS 75%']
 df6['eSMR']=df6['eSMR w/o CCUS']+df6['eSMR + CCUS 50%']
+
+# EnR+
+SimulName7='2022-9-12_EnR+_new_PACA'
+os.chdir(OutputFolder)
+os.chdir(SimulName7)
+Capa7=pd.read_csv('capacity_Pvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+#Power7=pd.read_csv('power_Dvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+#Import7=pd.read_csv('importation_Dvar_' + SimulName7 + '.csv').drop(columns='Unnamed: 0')
+os.chdir('..')
+os.chdir('..')
+os.chdir('..')
+df7=Capa7.pivot(columns='TECHNOLOGIES',values='capacity_Pvar', index='YEAR_op').rename(columns={
+    "electrolysis_AEL": "Alkalin electrolysis",
+    "electrolysis_PEMEL": "PEM electrolysis",
+    'SMR_class': "SMR w/o CCUS",
+    'SMR_CCS1':  'SMR + CCUS 50%',
+    'SMR_CCS2':  'SMR + CCUS 75%',
+    'SMR_elec': 'eSMR w/o CCUS',
+    'SMR_elecCCS1': 'eSMR + CCUS 50%',
+    'cracking':'Methane cracking'
+}).fillna(0)
+df7['SMR w/o CCUS']+=df7['SMR_class_ex']
+df7['SMR w CCUS']=df7['SMR + CCUS 50%']+df7['SMR + CCUS 75%']
+df7['eSMR']=df7['eSMR w/o CCUS']+df7['eSMR + CCUS 50%']
 
 #endregion
 
@@ -561,8 +596,8 @@ df_max=df1.copy()
 
 for y in list(df1.index):
     for tech in list(df1.columns):
-        df_min.loc[y,tech]=min([df1.loc[y,tech],df2.loc[y,tech],df3.loc[y,tech],df4.loc[y,tech],df5.loc[y,tech],df6.loc[y,tech]])
-        df_max.loc[y, tech]=max([df1.loc[y, tech], df2.loc[y, tech], df3.loc[y, tech], df4.loc[y, tech], df5.loc[y, tech],df6.loc[y, tech]])
+        df_min.loc[y,tech]=min([df1.loc[y,tech],df2.loc[y,tech],df3.loc[y,tech],df4.loc[y,tech],df5.loc[y,tech],df6.loc[y,tech],df7.loc[y,tech]])
+        df_max.loc[y, tech]=max([df1.loc[y, tech], df2.loc[y, tech], df3.loc[y, tech], df4.loc[y, tech], df5.loc[y, tech],df6.loc[y, tech],df7.loc[y, tech]])
 
 
 fig, ax = plt.subplots(2,1,sharex=True,figsize=(7,5))
@@ -604,7 +639,9 @@ ax[0].plot(l1111,color=col1)
 l11111=list(df5['SMR w/o CCUS']/1000)
 ax[0].plot(l11111,color=col1)
 l111111=list(df6['SMR w/o CCUS']/1000)
-ax[0].plot(l111111,color=col1,label='SMR w/o CCUS')
+ax[0].plot(l111111,color=col1)
+l1111111=list(df7['SMR w/o CCUS']/1000)
+ax[0].plot(l1111111,color=col1,label='SMR w/o CCUS')
 
 # Create blue area
 col2='#F8B740'
@@ -619,7 +656,9 @@ ax[0].plot(l2222,color=col2)
 l22222=list(df5['SMR w CCUS']/1000)
 ax[0].plot(l22222,color=col2)
 l222222=list(df6['SMR w CCUS']/1000)
-ax[0].plot(l222222,color=col2,label="SMR w CCUS")
+ax[0].plot(l222222,color=col2)
+l2222222=list(df7['SMR w CCUS']/1000)
+ax[0].plot(l2222222,color=col2,label="SMR w CCUS")
 
 # # Create orange area
 # l7=list(df_max['eSMR']/1000)
@@ -630,18 +669,20 @@ ax[0].plot(l222222,color=col2,label="SMR w CCUS")
 
 # Create Green area
 col3=col[2]
-l3=list(df1['Water electrolysis']/1000)
+l3=list(df1['Alkalin electrolysis']/1000+df1['PEM electrolysis']/1000)
 ax[1].plot(l3, color=col3)
-l33=list(df2['Water electrolysis']/1000)
+l33=list(df2['Alkalin electrolysis']/1000+df2['PEM electrolysis']/1000)
 ax[1].plot(l33, color=col3)
-l333=list(df3['Water electrolysis']/1000)
+l333=list(df3['Alkalin electrolysis']/1000+df3['PEM electrolysis']/1000)
 ax[1].plot(l333, color=col3)
-l3333=list(df4['Water electrolysis']/1000)
+l3333=list(df4['Alkalin electrolysis']/1000+df4['PEM electrolysis']/1000)
 ax[1].plot(l3333, color=col3)
-l33333=list(df5['Water electrolysis']/1000)
+l33333=list(df5['Alkalin electrolysis']/1000+df5['PEM electrolysis']/1000)
 ax[1].plot(l33333, color=col3)
-l333333=list(df6['Water electrolysis']/1000)
-ax[1].plot(l333333, color=col3,label='Water \n electrolysis')
+l333333=list(df6['Alkalin electrolysis']/1000+df6['PEM electrolysis']/1000)
+ax[1].plot(l333333, color=col3)
+l3333333=list(df7['Alkalin electrolysis']/1000+df7['PEM electrolysis']/1000)
+ax[1].plot(l3333333, color=col3,label='Water \n electrolysis')
 
 
 #ax[0].set_ylim([0,1100])
@@ -666,6 +707,6 @@ ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
 #ax[2].set_position([box.x0, box.y0, box.width * 0.74, box.height])
 # Put a legend to the right of the current axis
 #ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-plt.savefig('test')
+plt.savefig('Sensibility analysis')
 plt.show()
 #endregion
