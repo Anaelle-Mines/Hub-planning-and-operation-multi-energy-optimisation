@@ -108,7 +108,10 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     model.TotalCostsCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=TotalCostsDef_rule)
 
     def AjustDef_rule(model,y,tech):
-        return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
+        if tech in ['Interco','curtailment']:
+            return Constraint.Skip
+        else :
+            return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
     model.AjustCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=AjustDef_rule)
 
     def meritDef_rule(model,y,tech):
@@ -129,7 +132,7 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     model.meritCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=meritDef_rule)
 
     def Lim_rule(model,y,tech):
-        return model.AjustFac[y,tech] <= 100
+        return model.AjustFac[y,tech] <= 150
     model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
 
 

@@ -45,15 +45,16 @@ from Functions.f_InputScenario import *
 
 #region Choice of Scenario
 Scenario='Ref' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG', 'EnR+','Crack'
-ScenarioName='Ref_test_2015'
+ScenarioName='Ref_v4'
+ScenarioNameFr='Ref_v4'
 #endregion
 
 InputFolder='Data/Input/Input_'+ScenarioName+'/'
 OutputFolder='Data/output/'
-Simul_date='2022-9-29'
+Simul_date='2022-10-17'
 SimulName=Simul_date+'_'+ScenarioName
-DataCreation_date='2022-9-29'
-SimulNameFr=DataCreation_date+'_'+ScenarioName+'_Fr'
+DataCreation_date='2022-10-14'
+SimulNameFr=DataCreation_date+'_'+ScenarioNameFr+'_Fr'
 
 
 solver= 'mosek' ## no need for solverpath with mosek.
@@ -298,15 +299,15 @@ Variables['carbon_Pvar'].pivot(index="TIMESTAMP",columns='YEAR_op', values='carb
 #region Descritpion of scenario
 
 Param_list={'MixElec': {'plus':'100%','ref':'75%','moins':'50%'} ,
-            'CAPEX_EnR': {'plus':0.9,'ref':0.8,'moins':0.7},
-            'CAPEX_eSMR': {'plus':900,'ref':700,'moins':500},
+            'CAPEX_EnR': {'plus':0.9,'ref':0.75,'moins':0.6},
+            'CAPEX_eSMR': {'plus':1000,'ref':850,'moins':700},
             'CAPEX_CCS': {'plus':0.9,'ref':0.75,'moins':0.5},
             'CAPEX_elec': {'plus':0.7,'ref':0.55,'moins':0.4},
             'BlackC_price' : {'plus':138,'ref':0,'moins':0},
-            'Biogaz_price': {'plus':100,'ref':80,'moins':60},
-            'Gaznat_price': {'plus':2,'ref':1.5,'moins':1},
-            'CarbonTax' : {'plus':170,'ref':150,'moins':130},
-            'Local_RE':{'plus':[3000,300,2000],'ref':[2000,150,1000],'moins':[2000,150,1000]}}
+            'Biogaz_price': {'plus':120,'ref':80,'moins':40},
+            'Gaznat_price': {'plus':5,'ref':3,'moins':1},
+            'CarbonTax' : {'plus':200,'ref':165,'moins':130},
+            'Local_RE':{'plus':[3000,300,2000],'ref':[150,150,1000],'moins':[150,150,1000]}}
 
 Scenario_list={'Ref':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'ref','CAPEX_CCS': 'ref','CAPEX_elec': 'ref','Biogaz_price': 'ref','Gaznat_price': 'ref','CarbonTax' :'ref','Local_RE':'ref','BlackC_price':'ref'},
                'eSMR':{'MixElec':'ref','CAPEX_EnR': 'ref','CAPEX_eSMR': 'moins','CAPEX_CCS': 'ref','CAPEX_elec': 'plus','Biogaz_price': 'ref','Gaznat_price': 'moins','CarbonTax' :'plus','Local_RE':'ref','BlackC_price':'ref'},
@@ -407,13 +408,15 @@ marketPrice=ElecPrice_optim(ScenarioName,SimulNameFr,solver='mosek',InputFolder 
 os.chdir(OutputFolder)
 os.chdir(SimulNameFr)
 marketPrice=pd.read_csv('marketPrice.csv').set_index(['YEAR_op','TIMESTAMP'])
+marketPrice['NewPrice_NonAct'].loc[marketPrice['NewPrice']>250]=250
+marketPrice['OldPrice_NonAct'].loc[marketPrice['energyCtr']>250]=250
 os.chdir('..')
 os.chdir('..')
 os.chdir('..')
 
 
 #Année 2030
-MonotoneNew=marketPrice.NewPrice.loc[(2030,slice(None))].value_counts(bins=100)
+MonotoneNew=marketPrice.NewPrice_NonAct.loc[(2030,slice(None))].value_counts(bins=100)
 MonotoneNew.sort_index(inplace=True,ascending=False)
 NbVal=MonotoneNew.sum()
 MonotoneNew_Cumul=[]
@@ -424,7 +427,7 @@ for i in MonotoneNew.index :
     MonotoneNew_Cumul.append(val/NbVal*100)
     MonotoneNew_Price.append(i.right)
 
-MonotoneOld=marketPrice.energyCtr.loc[(2030,slice(None))].value_counts(bins=100)
+MonotoneOld=marketPrice.OldPrice_NonAct.loc[(2030,slice(None))].value_counts(bins=100)
 MonotoneOld.sort_index(inplace=True,ascending=False)
 NbVal=MonotoneOld.sum()
 MonotoneOld_Cumul=[]
@@ -440,7 +443,7 @@ plt.plot(MonotoneNew_Cumul,MonotoneNew_Price,'b-',label='NewPrice 2030')
 plt.plot(MonotoneOld_Cumul,MonotoneOld_Price,'b--',label='OldPrice 2030')
 
 #Année 2040
-MonotoneNew=marketPrice.NewPrice.loc[(2040,slice(None))].value_counts(bins=100)
+MonotoneNew=marketPrice.NewPrice_NonAct.loc[(2040,slice(None))].value_counts(bins=100)
 MonotoneNew.sort_index(inplace=True,ascending=False)
 NbVal=MonotoneNew.sum()
 MonotoneNew_Cumul=[]
@@ -451,7 +454,7 @@ for i in MonotoneNew.index :
     MonotoneNew_Cumul.append(val/NbVal*100)
     MonotoneNew_Price.append(i.right)
 
-MonotoneOld=marketPrice.energyCtr.loc[(2040,slice(None))].value_counts(bins=100)
+MonotoneOld=marketPrice.OldPrice_NonAct.loc[(2040,slice(None))].value_counts(bins=100)
 MonotoneOld.sort_index(inplace=True,ascending=False)
 NbVal=MonotoneOld.sum()
 MonotoneOld_Cumul=[]
@@ -467,7 +470,7 @@ plt.plot(MonotoneNew_Cumul,MonotoneNew_Price,'r-',label='NewPrice 2040')
 plt.plot(MonotoneOld_Cumul,MonotoneOld_Price,'r--',label='OldPrice 2040')
 
 # Année 2050
-MonotoneNew = marketPrice.NewPrice.loc[(2050, slice(None))].value_counts(bins=100)
+MonotoneNew = marketPrice.NewPrice_NonAct.loc[(2050, slice(None))].value_counts(bins=100)
 MonotoneNew.sort_index(inplace=True, ascending=False)
 NbVal = MonotoneNew.sum()
 MonotoneNew_Cumul = []
@@ -478,7 +481,7 @@ for i in MonotoneNew.index:
     MonotoneNew_Cumul.append(val / NbVal * 100)
     MonotoneNew_Price.append(i.right)
 
-MonotoneOld = marketPrice.energyCtr.loc[(2050, slice(None))].value_counts(bins=100)
+MonotoneOld = marketPrice.OldPrice_NonAct.loc[(2050, slice(None))].value_counts(bins=100)
 MonotoneOld.sort_index(inplace=True, ascending=False)
 NbVal = MonotoneOld.sum()
 MonotoneOld_Cumul = []
@@ -500,7 +503,7 @@ plt.ylabel('Prix (€/MWh)')
 
 os.chdir(OutputFolder)
 os.chdir(SimulNameFr)
-plt.savefig('Monotone de prix élec')
+plt.savefig('Monotone de prix élec _ wo high prices')
 os.chdir('..')
 os.chdir('..')
 os.chdir('..')
@@ -529,10 +532,10 @@ areaConsumption,availabilityFactor,TechParameters,conversionFactor,ResParameters
 
 #region PACA
 Zones="PACA" ; year='2020-2050'; PrixRes='horaire'
-Selected_TECHNOLOGIES =['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
+Selected_TECHNOLOGIES =['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_elec','SMR_elecCCS1','SMR_class','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
 Selected_STECH= ['Battery','tankH2_G']
 dic_eco = {2020: 1, 2030: 2, 2040: 3, 2050: 4}
-TransFactors=pd.DataFrame({'TECHNO1':['SMR_class_ex','SMR_class_ex','SMR_class','SMR_class','SMR_elec','SMR_CCS1'],'TECHNO2':['SMR_CCS1','SMR_CCS2','SMR_CCS1','SMR_CCS2','SMR_elecCCS1','SMR_CCS2'],'TransFactor':[1,1,1,1,1,1]}).set_index(['TECHNO1','TECHNO2'])
+TransFactors=pd.DataFrame({'TECHNO1':['SMR_class_ex','SMR_class_ex','SMR_class','SMR_class','SMR_CCS1','SMR_elec'],'TECHNO2':['SMR_CCS1','SMR_CCS2','SMR_CCS1','SMR_CCS2','SMR_CCS2','SMR_elecCCS1'],'TransFactor':[1,1,1,1,1,1]}).set_index(['TECHNO1','TECHNO2'])
 #### reading areaConsumption availabilityFactor and TechParameters CSV files
 areaConsumption,availabilityFactor,TechParameters,conversionFactor,ResParameters,Calendrier,StorageParameters,storageFactor,Economics,CarbonTax=loadingParameters_MultiTempo_SMR(Selected_TECHNOLOGIES,Selected_STECH,InputFolder=InputFolder,Zones=Zones,year=year,PrixRes=PrixRes,dic_eco=dic_eco)
 #endregion
@@ -677,9 +680,9 @@ ax[1].bar(x,l10,width,  bottom=[i+j for i,j in zip(l8,l9)],color=col[6],label="W
 #add Load factors
 for i in np.arange(1,len(x)):
     ax[0].text((x + width/2)[i], l7[i]/2, str(round(H2_loadFactor[i+1]['electrolysis_AEL']*100)) +'%',ha='center')
-    ax[1].text((x)[i], l8[i]/2, str(round(EnR_loadFactor[i + 1]['Solar'] * 100)) + '%', ha='center')
-    ax[1].text((x)[i], l8[i]+l9[i]/2, str(round(EnR_loadFactor[i + 1]['WindOnShore'] * 100)) + '%', ha='center')
-    ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[i + 1]['WindOffShore'] * 100)) + '%', ha='center')
+    #ax[1].text((x)[i], l8[i]/2, str(round(EnR_loadFactor[i + 1]['Solar'] * 100)) + '%', ha='center')
+   #ax[1].text((x)[i], l8[i]+l9[i]/2, str(round(EnR_loadFactor[i + 1]['WindOnShore'] * 100)) + '%', ha='center')
+   # ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[i + 1]['WindOffShore'] * 100)) + '%', ha='center')
 
 ax[0].set_ylim([0,2000])
 ax[1].set_ylim([0,5000])
@@ -1317,6 +1320,8 @@ os.chdir('..')
 
 os.chdir(InputFolder)
 convFac=pd.read_csv('conversionFactors_RESxTECH.csv').set_index(['RESOURCES','TECHNOLOGIES'])
+Tech=pd.read_csv('set2020-2050_PACA_SMR_TECHxYEAR.csv').set_index('YEAR').rename(index={2020:2,2030:3,2040:4}).set_index('TECHNOLOGIES',append=True)
+TaxC=pd.read_csv('CarbonTax_YEAR.csv').rename(columns={'Unnamed: 0':'YEAR'}).set_index('YEAR')
 os.chdir('..')
 os.chdir('..')
 os.chdir('..')
@@ -1324,9 +1329,15 @@ os.chdir('..')
 os.chdir(OutputFolder)
 os.chdir(SimulName)
 
+Grid_car=carbon_content.rename(columns={'YEAR_op':'YEAR'}).set_index('YEAR').rename(index={2030:2,2040:3,2050:4}).set_index('TIMESTAMP',append=True)
 df1=Variables['powerCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','powerCosts_Pvar':'powerCosts'}).set_index(['YEAR','TECHNOLOGIES'])
 df1['capacityCosts']=Variables['capacityCosts_Pvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','TECHNOLOGIES'])
 df1['Prod']=Variables['power_Dvar'].rename(columns={'YEAR_op':'YEAR'}).groupby(['YEAR','TECHNOLOGIES']).sum().drop(columns=['TIMESTAMP'])
+df2=Variables['importCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','importCosts_Pvar':'importCosts'}).set_index(['YEAR','RESOURCES'])
+df2['TURPE']=Variables['turpeCosts_Pvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','RESOURCES'])
+df3=Variables['capacityCosts_Pvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','TECHNOLOGIES'])
+df4=Variables['storageCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','storageCosts_Pvar':'storageCosts'}).set_index(['YEAR','STOCK_TECHNO'])
+df5=Variables['carbonCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','carbonCosts_Pvar':'carbon'}).set_index('YEAR')
 
 Y=list(df1.index.get_level_values('YEAR').unique())
 
@@ -1336,13 +1347,24 @@ for y in Y:
 
 # Energy use
 TECHNO = list(df1.index.get_level_values('TECHNOLOGIES').unique())
+TIMESTAMP=list(Variables['power_Dvar'].set_index('TIMESTAMP').index.get_level_values('TIMESTAMP').unique())
 
 df1['elecUse'] = 0
 df1['gasUse'] = 0
+df1['carbon'] = 0
 
 for tech in TECHNO:
     df1.loc[(slice(None),tech),'elecUse']=df1.loc[(slice(None),tech),'Prod']*(-convFac.loc[('electricity',tech),'conversionFactor'])
     df1.loc[(slice(None), tech), 'gasUse'] = df1.loc[(slice(None), tech), 'Prod'] * (-convFac.loc[('gaz', tech), 'conversionFactor'])
+
+Elecfac=pd.DataFrame(Y,columns=['YEAR']).set_index('YEAR')
+imp=Variables['importation_Dvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','TIMESTAMP','RESOURCES']).loc[(slice(None),slice(None),'electricity')].groupby('YEAR').sum()
+for y in Y: Elecfac.loc[y,'ElecFac']=imp.loc[y,'importation_Dvar']/df1['elecUse'].groupby('YEAR').sum().loc[y]
+
+for tech in TECHNO:
+    Grid_car[tech]=Variables['power_Dvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','TIMESTAMP','TECHNOLOGIES']).loc[(slice(None),slice(None),tech)]*(-convFac.loc[('electricity',tech),'conversionFactor'])
+    Grid_car[tech]=Grid_car[tech]*Grid_car['carbonContent']
+    df1.loc[(slice(None), tech), 'carbon'] = (df1.loc[(slice(None), tech), 'Prod'] * ((-convFac.loc[('gaz', tech), 'conversionFactor']) * 203.5 + Tech.loc[(slice(None),tech),'EmissionCO2']) + Grid_car[tech].groupby('YEAR').sum()*Elecfac['ElecFac'])*TaxC['carbonTax']
 
 df1['prodPercent']=0
 for y in Y:
@@ -1362,11 +1384,6 @@ df1.loc[(slice(None), 'SMR_elecCCS1'), 'type']='eSMR'
 df1.loc[(slice(None), 'electrolysis_AEL'), 'type']='Electrolysis'
 df1.loc[(slice(None), 'electrolysis_PEMEL'), 'type']='Electrolysis'
 df1.loc[(slice(None), 'cracking'), 'type']='Cracking'
-
-df2=Variables['importCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','importCosts_Pvar':'importCosts'}).set_index(['YEAR','RESOURCES'])
-df2['TURPE']=Variables['turpeCosts_Pvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','RESOURCES'])
-df3=Variables['capacityCosts_Pvar'].rename(columns={'YEAR_op':'YEAR'}).set_index(['YEAR','TECHNOLOGIES'])
-df4=Variables['storageCosts_Pvar'].rename(columns={'YEAR_op':'YEAR','storageCosts_Pvar':'storageCosts'}).set_index(['YEAR','STOCK_TECHNO'])
 
 # Repartition coût
 
@@ -1404,6 +1421,8 @@ col=sb.color_palette('muted')
 bl='#2ba9ff'
 rd='#fca592'
 ye='#F8B740'
+br='#e1a673'
+gr='#cccccc'
 parameters={'axes.labelsize': 12,
             'xtick.labelsize': 12,
             'ytick.labelsize': 12,
@@ -1430,7 +1449,7 @@ for i in np.arange(B_nb):
 b={}
 for i in np.arange(B_nb):
     b[i]=list(df[B[i]]['importGas']/(df[B[i]]['Prod']*30))
-    plt.bar(x + X[i], b[i], width, bottom=a[i], color=col[5],label="Gas" if i==0 else "")
+    plt.bar(x + X[i], b[i], width, bottom=a[i], color=br,label="Gas" if i==0 else "")
 
 # Create green Bars
 c={}
@@ -1462,15 +1481,22 @@ for i in np.arange(B_nb):
     g[i]=list(df[B[i]]['storageElec']/(df[B[i]]['Prod']*30))
     plt.bar(x + X[i], g[i], width,   bottom=[i + j + k + l + m + n for i, j, k, l, m, n in zip(a[i],b[i],c[i],d[i],e[i],f[i])], color=col[1],label="Elec storage capa" if i==0 else "")
 
+# Create grey Bars
+h={}
+for i in np.arange(B_nb):
+    h[i]=list(df[B[i]]['carbon']/(df[B[i]]['Prod']*30))
+    plt.bar(x + X[i], h[i], width,   bottom=[i + j + k + l + m + n + o for i, j, k, l, m, n, o in zip(a[i],b[i],c[i],d[i],e[i],f[i],g[i])], color=gr,label="Carbon tax" if i==0 else "")
+
 for i in np.arange(B_nb):
     for j in x:
-        ax.text((x+X[i])[j], [k + l + m + n + o + p + q + 0.05 for k, l, m, n, o, p, q in zip(a[i],b[i],c[i],d[i],e[i],f[i],g[i])][j],B[i],ha='center',rotation=70)
-    print([k + l + m + n + o + p + q for k, l, m, n, o, p, q in zip(a[i],b[i],c[i],d[i],e[i],f[i],g[i])])
+        ax.text((x+X[i])[j], [k + l + m + n + o + p + q + r + 0.05 for k, l, m, n, o, p, q, r in zip(a[i],b[i],c[i],d[i],e[i],f[i],g[i],h[i])][j],B[i],ha='center',rotation=70)
+    print([k + l + m + n + o + p + q + r for k, l, m, n, o, p, q, r in zip(a[i],b[i],c[i],d[i],e[i],f[i],g[i],h[i])])
+
 
 ax.set_ylabel('Costs (€/kgH2)')
 x=list(x)
 plt.xticks(x, ['2030','2040', '2050'])
-ax.set_ylim([0,4.5])
+ax.set_ylim([0,5.5])
 ax.set_title("Hydrogen production costs")
 # Shrink current axis by 20%
 box = ax.get_position()
@@ -1669,7 +1695,7 @@ plotly.offline.plot(fig2, filename='file.html') ## offline
 
 #endregion
 
-#region analyse fonctionnement SMR
+#region Analyse fonctionnement SMR
 Zones="PACA"
 SimulName=SimulName+'_'+Zones
 
@@ -1796,6 +1822,32 @@ Results.to_csv('SMR_analysis_'+SimulName+'.csv',index=True)
 
 #endregion
 
+#region Analyse Prix EnR
+Zones="PACA"
+SimulName=SimulName+'_'+Zones
+
+#Import results
+os.chdir(OutputFolder)
+os.chdir(SimulName)
+v_list = ['capacityInvest_Dvar','transInvest_Dvar','capacity_Pvar','capacityDem_Dvar','capacityDel_Pvar', 'energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar',
+         'stockLevel_Pvar', 'importation_Dvar', 'Cmax_Pvar','carbon_Pvar','powerCosts_Pvar','capacityCosts_Pvar','importCosts_Pvar','storageCosts_Pvar','turpeCosts_Pvar','Pmax_Pvar','max_PS_Dvar','carbonCosts_Pvar']
+Variables = {v : pd.read_csv(v + '_' + SimulName + '.csv').drop(columns='Unnamed: 0') for v in v_list}
+carbon_content=pd.read_csv('carbon_' + SimulName + '.csv')
+os.chdir('..')
+os.chdir(SimulNameFr)
+elec_price=pd.read_csv('elecPrice_' + SimulNameFr + '.csv')
+marketPrice=pd.read_csv('marketPrice.csv')
+os.chdir('..')
+os.chdir(SimulName)
+
+Power=Variables['power_Dvar'].pivot(index=['YEAR_op','TIMESTAMP'],columns='TECHNOLOGIES',values='power_Dvar')[['Solar','WindOnShore','WindOffShore']].groupby('YEAR_op').sum()
+CapaCosts=Variables['capacityCosts_Pvar'].pivot(index='YEAR_op',columns='TECHNOLOGIES',values='capacityCosts_Pvar')[['Solar','WindOnShore','WindOffShore']]
+EnR_elecPrice=CapaCosts/Power
+
+EnR_usePrice=Variables['importCosts_Pvar'].loc[Variables['importCosts_Pvar']['RESOURCES']=='electricity'].groupby('YEAR_op').sum()['importCosts_Pvar']/Variables['importation_Dvar'].loc[Variables['importation_Dvar']['RESOURCES']=='electricity'].groupby('YEAR_op').sum()['importation_Dvar']
+
+#endregion
+
 #region Curtailment Analysis
 
 Zones="PACA"
@@ -1857,9 +1909,9 @@ marketPrice_year={y:marketPrice.set_index('YEAR_op').rename(index={2030:2,2040:3
 EnR_marg_wo={y:sum(marketPrice_year[y].loc[marketPrice_year[y]['LastCalled'] == tech]['LastCalled'].count() for tech in ['Solar','WindOnShore','WindOffShore','HydroRiver'])  for y in [2,3,4]}
 EnR_marg_w={y:EnR_marg_wo[y]+marketPrice_year[y].loc[marketPrice_year[y]['LastCalled'] == 'HydroReservoir']['LastCalled'].count() for y in [2,3,4]}
 
-marketPrice_year[2].loc[marketPrice_year[2]['NewPrice']<50]
-marketPrice_year[3].loc[marketPrice_year[3]['NewPrice']<50]
-marketPrice_year[4].loc[marketPrice_year[4]['NewPrice']<50]
+marketPrice_year[2].loc[marketPrice_year[2]['NewPrice_NonAct']<50]
+marketPrice_year[3].loc[marketPrice_year[3]['NewPrice_NonAct']<50]
+marketPrice_year[4].loc[marketPrice_year[4]['NewPrice_NonAct']<50]
 #endregion
 
 # #test

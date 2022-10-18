@@ -86,8 +86,8 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
     # Electrolysis
     techno.loc[(2040,'electrolysis_PEMEL'),'investCost']=techno.loc[(2020,'electrolysis_PEMEL'),'investCost']*(Param_list['CAPEX_elec'][Scenario_list[Scenario]['CAPEX_elec']]-0.15)
     techno.loc[(2030,'electrolysis_PEMEL'),'investCost']=(techno.loc[(2020,'electrolysis_PEMEL'),'investCost']+techno.loc[(2040,'electrolysis_PEMEL'),'investCost'])/2
-    techno.loc[(2040,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2040,'electrolysis_PEMEL'),'investCost']*0.05
-    techno.loc[(2030,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2030,'electrolysis_PEMEL'),'investCost']*0.05
+    techno.loc[(2040,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2040,'electrolysis_PEMEL'),'investCost']*0.03
+    techno.loc[(2030,'electrolysis_PEMEL'),'operationCost']=techno.loc[(2030,'electrolysis_PEMEL'),'investCost']*0.03
     techno.loc[(2040,'electrolysis_AEL'),'investCost']=techno.loc[(2020,'electrolysis_AEL'),'investCost']*Param_list['CAPEX_elec'][Scenario_list[Scenario]['CAPEX_elec']]
     techno.loc[(2030,'electrolysis_AEL'),'investCost']=(techno.loc[(2020,'electrolysis_AEL'),'investCost']+techno.loc[(2040,'electrolysis_AEL'),'investCost'])/2
     techno.loc[(2040,'electrolysis_AEL'),'operationCost']=techno.loc[(2040,'electrolysis_AEL'),'investCost']*0.03
@@ -218,14 +218,14 @@ def Res_Price(Scenario,Res_ref,marketPrice,carbonContent,Param_list,Scenario_lis
         Res.loc[(yr, slice(None), 'gazBio'), 'importCost']=Param_list['Biogaz_price'][Scenario_list[Scenario]['Biogaz_price']]+dic[yr]*20
     #electricity
     if type=='SMR':
-        Res.loc[(slice(None), slice(None), 'electricity'),'importCost'] = marketPrice.loc[(slice(None),slice(None))]['NewPrice']
+        Res.loc[(slice(None), slice(None), 'electricity'),'importCost'] = marketPrice.loc[(slice(None),slice(None))]['NewPrice_NonAct']
         Res.loc[(slice(None), slice(None), 'electricity'),'emission'] = carbonContent.loc[(slice(None),slice(None))]['carbonContent']
 
     return Res
 
 def create_data(Scenario,ScenarioName,Scenario_list,Param_list,ElecMix,solver='mosek',InputFolder = 'Data/Input/',OutputFolder = 'Data/output/'):
 
-    ImportFolder = 'Data/Input_reference_test2018/'
+    ImportFolder = 'Data/Input_reference_v3/'
     areaConsumption, areaConsumptionSMR, availabilityFactorFr, availabilityFactorPACA, Calendrier, Convfac, sConvfac, Economics, Stechno_ref, techno_ref, Res_ref, marketPrice_ref, carbon_ref = loading_reference(ImportFolder)
     carbonTax_ref = {2: 0.1, 3: 0.115, 4: 0.13}
 
@@ -388,17 +388,6 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     test = marketPrice.NewPrice == marketPrice.energyCtr
     print(test.loc[test == False])
 
-    marketPrice = round(marketPrice.reset_index().set_index('YEAR_op').rename(index=dic_an).set_index('TIMESTAMP',append=True),2)
-    marketPrice.loc[marketPrice['NewPrice']<0]=0
-
-    os.chdir(OutputFolder)
-    os.chdir(SimulName)
-    AjustFac.to_csv('priceCorrection.csv')
-    marketPrice.to_csv('marketPrice.csv')
-    os.chdir('..')
-    os.chdir('..')
-    os.chdir('..')
-
     # #méthode 2
     # marketPrice['NewPrice']=marketPrice['energyCtr']
     # marketPrice.loc[elecProd.loc[(2,slice(None),'Solar')].loc[elecProd.loc[(2,slice(None),'Solar')]['power_Dvar']>0].index,'NewPrice']=list(marketPrice.loc[elecProd.loc[(2,slice(None),'Solar')].loc[elecProd.loc[(2,slice(None),'Solar')]['power_Dvar']>0].index]['energyCtr']+34.26)
@@ -410,7 +399,6 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     test='energyCtr'
     #test = 'NewPrice'
 
-    marketPrice=marketPrice.reset_index().set_index('YEAR_op').rename(index=dic_eco).set_index('TIMESTAMP',append=True)
     TECHNO = list(elecProd.index.get_level_values('TECHNOLOGIES').unique())
     TIMESTAMP = list(elecProd.index.get_level_values('TIMESTAMP').unique())
     RES = list(ResParameters.index.get_level_values('RESOURCES').unique())
@@ -445,11 +433,27 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     print(elec_var['AjustFac'].loc[elec_var['AjustFac']['AjustFac'] > 0])
     print(raport)
 
+    marketPrice.loc[marketPrice['NewPrice'] < 0] = 0
+
+    for yr in [2, 3, 4]:
+        marketPrice.loc[(yr, slice(None)),'OldPrice_NonAct'] = marketPrice.loc[(yr, slice(None)),'energyCtr'] / ((1 + Economics.loc['discountRate']['value']) ** (-10*(yr-1)))
+        marketPrice.loc[(yr,slice(None)),'NewPrice_NonAct']=marketPrice.loc[(yr,slice(None)),'NewPrice']/ ((1 + Economics.loc['discountRate']['value']) ** (-10*(yr-1)))
+
+    marketPrice = round(marketPrice.reset_index().set_index('YEAR_op').rename(index=dic_an).set_index('TIMESTAMP', append=True), 2)
+
+    os.chdir(OutputFolder)
+    os.chdir(SimulName)
+    AjustFac.to_csv('priceCorrection.csv')
+    marketPrice.to_csv('marketPrice.csv')
+    os.chdir('..')
+    os.chdir('..')
+    os.chdir('..')
+
     return marketPrice
 
 def create_data_PACA(Scenario,ScenarioName,marketPrice,Carbon_content, Param_list, Scenario_list,ElecMix,InputFolder = 'Data/Input/') :
 
-    ImportFolder = 'Data/Input_reference/'
+    ImportFolder = 'Data/Input_reference_v3/'
     areaConsumption, areaConsumptionSMR, availabilityFactorFr, availabilityFactorPACA, Calendrier, Convfac, sConvfac, Economics, Stechno_ref, techno_ref, Res_ref, marketPrice_ref, carbon_ref = loading_reference(ImportFolder)
     # Creation of data
 

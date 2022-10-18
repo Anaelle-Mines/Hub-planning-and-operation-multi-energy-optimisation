@@ -1010,7 +1010,7 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     model.CmaxDel_Dvar = Var(model.YEAR_invest, model.STOCK_TECHNO,domain=NonNegativeReals)
     model.PmaxDel_Dvar = Var(model.YEAR_invest, model.STOCK_TECHNO,domain=NonNegativeReals)
 
-    # Costs
+    #
     model.powerCosts_Pvar = Var(model.YEAR_op,model.TECHNOLOGIES)  ### Marginal cost for a conversion mean, explicitely defined by definition powerCostsDef
     model.capacityCosts_Pvar = Var(model.YEAR_op,model.TECHNOLOGIES)  ### Fixed costs for a conversion mean, explicitely defined by definition capacityCostsDef
     model.importCosts_Pvar = Var(model.YEAR_op,model.RESOURCES)  ### Cost of ressource imported, explicitely defined by definition importCostsDef
@@ -1027,21 +1027,29 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     ########################
 
     def ObjectiveFunction_rule(model):  # OBJ
-        return sum((sum(model.powerCosts_Pvar[y,tech] + model.capacityCosts_Pvar[y,tech] for tech in model.TECHNOLOGIES) + sum(
-            model.importCosts_Pvar[y,res] for res in model.RESOURCES)) + sum(model.storageCosts_Pvar[y,s_tech] for s_tech in STOCK_TECHNO) + model.turpeCosts_Pvar[y,'electricity'] + model.carbonCosts_Pvar[y]for y in model.YEAR_op)
+        print('x')
+        return sum(
+            (sum(model.powerCosts_Pvar[y,tech] + model.capacityCosts_Pvar[y,tech] for tech in model.TECHNOLOGIES)
+                + sum(model.importCosts_Pvar[y,res] for res in model.RESOURCES)
+                + sum(model.storageCosts_Pvar[y,s_tech] for s_tech in STOCK_TECHNO)
+                + model.turpeCosts_Pvar[y,'electricity']
+                + model.carbonCosts_Pvar[y])
+            for y in model.YEAR_op)
     model.OBJ = Objective(rule=ObjectiveFunction_rule, sense=minimize)
 
     #################
     # Constraints   #
     #################
+    r = Economics.loc['discountRate'].value
 
     # powerCosts definition Constraints
     def powerCostsDef_rule(model,y,tech):  # EQ forall tech in TECHNOLOGIES powerCosts  = sum{t in TIMESTAMP} powerCost[tech]*power[t,tech] / 1E6;
-        return sum(model.powerCost[y-1,tech] * model.power_Dvar[y,t, tech] for t in model.TIMESTAMP) == model.powerCosts_Pvar[y,tech]
+        def factor3(r,y):
+            return (1+r)**(-10*y)
+        return sum(model.powerCost[y-1,tech]*factor3(r,y) * model.power_Dvar[y,t, tech]  for t in model.TIMESTAMP) == model.powerCosts_Pvar[y,tech]
     model.powerCostsCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=powerCostsDef_rule)
 
     # capacityCosts definition Constraints
-    r=Economics.loc['discountRate'].value
     def capacityCostsDef_rule(model,y,tech):  # EQ forall tech in TECHNOLOGIES
         def factor1(r,yi):
             return r/((1+r)*(1-(1+r)**-model.lifeSpan[yi,tech]))
@@ -1055,8 +1063,9 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
 
     # importCosts definition Constraints
     def importCostsDef_rule(model,y,res):
-        return sum((model.importCost[y,t, res] * model.importation_Dvar[y,t, res]) for t in model.TIMESTAMP) == \
-               model.importCosts_Pvar[y,res]
+        def factor3(r,y):
+            return (1+r)**(-10*y)
+        return sum((model.importCost[y,t, res]*factor3(r,y)  * model.importation_Dvar[y,t, res])for t in model.TIMESTAMP) == model.importCosts_Pvar[y,res]
     model.importCostsCtr = Constraint(model.YEAR_op, model.RESOURCES,rule=importCostsDef_rule)
 
     # gaz definition Constraints
@@ -1081,7 +1090,9 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
 
     # CarbonCosts definition Constraint
     def CarbonCosts_rule(model,y):
-        return model.carbonCosts_Pvar[y] == sum(model.carbon_Pvar[y,t]*model.carbon_taxe[y] for t in model.TIMESTAMP)
+        def factor3(r,y):
+            return (1+r)**(-10*y)
+        return model.carbonCosts_Pvar[y] == sum(model.carbon_Pvar[y,t]*model.carbon_taxe[y]*factor3(r,y) for t in model.TIMESTAMP)
     model.CarbonCostsCtr = Constraint(model.YEAR_op,rule=CarbonCosts_rule)
 
     # TURPE
@@ -1102,8 +1113,10 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     model.PuissanceSouscriteCtr = Constraint(model.YEAR_op, model.TIMESTAMP, model.RESOURCES,rule=PuissanceSouscrite_rule)
 
     def TurpeCtr_rule(model,y, res):
+        def factor3(r,y):
+            return (1+r)**(-10*y)
         if res == 'electricity':
-            return model.turpeCosts_Pvar[y,res] == sum(model.HTA[t] * model.importation_Dvar[y,t,res] for t in TIMESTAMP) + model.max_PS_Dvar[y,'P']*16310+(model.max_PS_Dvar[y,'HPH']-model.max_PS_Dvar[y,'P'])*15760+(model.max_PS_Dvar[y,'HCH']-model.max_PS_Dvar[y,'HPH'])*13290+(model.max_PS_Dvar[y,'HPE']-model.max_PS_Dvar[y,'HCH'])*8750+(model.max_PS_Dvar[y,'HCE']-model.max_PS_Dvar[y,'HPE'])*1670
+            return model.turpeCosts_Pvar[y,res] == (sum(model.HTA[t] * model.importation_Dvar[y,t,res] for t in TIMESTAMP) + model.max_PS_Dvar[y,'P']*16310+(model.max_PS_Dvar[y,'HPH']-model.max_PS_Dvar[y,'P'])*15760+(model.max_PS_Dvar[y,'HCH']-model.max_PS_Dvar[y,'HPH'])*13290+(model.max_PS_Dvar[y,'HPE']-model.max_PS_Dvar[y,'HCH'])*8750+(model.max_PS_Dvar[y,'HCE']-model.max_PS_Dvar[y,'HPE'])*1670)*factor3(r,y)
         else:
             return model.turpeCosts_Pvar[y,res] == 0
     model.TurpeCtr = Constraint(model.YEAR_op,model.RESOURCES, rule=TurpeCtr_rule)
@@ -1210,7 +1223,6 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
 
     # storageCosts definition Constraint
     def storageCostsDef_rule(model,y,s_tech):  # EQ forall s_tech in STOCK_TECHNO
-        r=Economics.loc['discountRate'].value
         def factor1(r, yi):
             return r / ((1 + r) * (1 - (1 + r) ** -model.storagelifeSpan[yi, s_tech]))
         def factor2(r, y):
