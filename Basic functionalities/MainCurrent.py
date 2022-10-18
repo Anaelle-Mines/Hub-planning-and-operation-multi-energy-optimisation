@@ -45,13 +45,13 @@ from Functions.f_InputScenario import *
 
 #region Choice of Scenario
 Scenario='Ref' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG', 'EnR+','Crack'
-ScenarioName='Ref_v4'
+ScenarioName='Ref_gasUp_v4'
 ScenarioNameFr='Ref_v4'
 #endregion
 
 InputFolder='Data/Input/Input_'+ScenarioName+'/'
 OutputFolder='Data/output/'
-Simul_date='2022-10-17'
+Simul_date='2022-10-18'
 SimulName=Simul_date+'_'+ScenarioName
 DataCreation_date='2022-10-14'
 SimulNameFr=DataCreation_date+'_'+ScenarioNameFr+'_Fr'
@@ -305,7 +305,7 @@ Param_list={'MixElec': {'plus':'100%','ref':'75%','moins':'50%'} ,
             'CAPEX_elec': {'plus':0.7,'ref':0.55,'moins':0.4},
             'BlackC_price' : {'plus':138,'ref':0,'moins':0},
             'Biogaz_price': {'plus':120,'ref':80,'moins':40},
-            'Gaznat_price': {'plus':5,'ref':3,'moins':1},
+            'Gaznat_price': {'plus':5,'ref':10,'moins':1},
             'CarbonTax' : {'plus':200,'ref':165,'moins':130},
             'Local_RE':{'plus':[3000,300,2000],'ref':[150,150,1000],'moins':[150,150,1000]}}
 

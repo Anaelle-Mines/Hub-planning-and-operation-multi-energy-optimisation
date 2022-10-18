@@ -1027,7 +1027,6 @@ def GetElectricSystemModel_MultiResources_MultiTempo_SingleNode_WithStorage(area
     ########################
 
     def ObjectiveFunction_rule(model):  # OBJ
-        print('x')
         return sum(
             (sum(model.powerCosts_Pvar[y,tech] + model.capacityCosts_Pvar[y,tech] for tech in model.TECHNOLOGIES)
                 + sum(model.importCosts_Pvar[y,res] for res in model.RESOURCES)

@@ -95,7 +95,7 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
 
 
     # eSMR
-    techno.loc[(2040,'SMR_elec'),'investCost']=Param_list['CAPEX_eSMR'][Scenario_list[Scenario]['CAPEX_eSMR']]*1000
+    techno.loc[(2040,'SMR_elec'),'investCost']=Param_list['CAPEX_eSMR'][Scenario_list[Scenario]['CAPEX_eSMR']]*100000
     techno.loc[(2030,'SMR_elec'),'investCost']=(techno.loc[(2020,'SMR_elec'),'investCost']+techno.loc[(2040,'SMR_elec'),'investCost'])/2
     techno.loc[(2040,'SMR_elec'),'operationCost']=techno.loc[(2040,'SMR_elec'),'investCost']*0.05
     techno.loc[(2030,'SMR_elec'),'operationCost']=techno.loc[(2030,'SMR_elec'),'investCost']*0.05
