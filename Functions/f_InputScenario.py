@@ -32,32 +32,12 @@ import seaborn as sb
 
 from Functions.f_multiResourceModels import *
 from Functions.f_optimization import *
-from Functions.f_graphicalTools import *
 from Functions.f_optimModel_elec import *
 
 # Change this if you have other solvers obtained here
 ## https://ampl.com/products/solvers/open-source/
 ## for eduction this site provides also several professional solvers, that are more efficient than e.g. cbc
 #endregion
-
-def loading_reference(InputFolder):
-    os.chdir(InputFolder)
-    areaConsumption = pd.read_csv('areaConsumption2020-2050_Fr_TIMExRESxYEAR.csv').set_index(['YEAR', 'TIMESTAMP', 'RESOURCES'])
-    areaConsumptionSMR = pd.read_csv('areaConsumption2020-2050_PACA_SMR_TIMExRESxYEAR.csv').set_index(['YEAR', 'TIMESTAMP', 'RESOURCES'])
-    availabilityFactorFr = pd.read_csv('availabilityFactor2020-2050_Fr_TIMExTECHxYEAR.csv').set_index(['YEAR', 'TIMESTAMP', 'TECHNOLOGIES'])
-    availabilityFactorPACA = pd.read_csv('availabilityFactor2020-2050_PACA_TIMExTECHxYEAR.csv').set_index(['YEAR', 'TIMESTAMP', 'TECHNOLOGIES'])
-    Calendrier = pd.read_csv('calendrierHPHC_TIME.csv').set_index('TIMESTAMP')
-    Convfac = pd.read_csv('conversionFactors_RESxTECH.csv').set_index(['RESOURCES', 'TECHNOLOGIES'])
-    sConvfac = pd.read_csv('storageFactor_RESxSTECH.csv').set_index(['RESOURCES', 'STOCK_TECHNO'])
-    Economics = pd.read_csv('Economics.csv').set_index(["Eco"])
-    Stechno = pd.read_csv('set_STECHxYEAR.csv').set_index(['YEAR'])
-    techno = pd.read_csv('set_TECHxYEAR.csv').set_index(['YEAR'])
-    Res = pd.read_csv('set2020-2050_horaire_TIMExRESxYEAR.csv').set_index(['YEAR', 'TIMESTAMP', 'RESOURCES'])
-    marketPrice = pd.read_csv('marketPrice.csv').rename(columns={'YEAR_op': 'YEAR'}).set_index('YEAR').rename(index={2: 2030, 3: 2040, 4: 2050}).set_index('TIMESTAMP', append=True)
-    carbon = pd.read_csv('carbon.csv').rename(columns={'YEAR_op': 'YEAR'}).set_index('YEAR').rename(index={2: 2030, 3: 2040, 4: 2050}).set_index('TIMESTAMP', append=True)
-    os.chdir('..')
-    os.chdir('..')
-    return areaConsumption,areaConsumptionSMR,availabilityFactorFr,availabilityFactorPACA,Calendrier,Convfac,sConvfac,Economics,Stechno,techno,Res,marketPrice,carbon
 
 def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
     techno=techno.append(techno.loc[2020].rename(index={2020:2030}))
@@ -77,7 +57,7 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
         techno.loc[(yr, 'Coal_p'), 'operationCost'] = 36000
 
     # EnR
-    for tech in ['Solar','WindOnShore','WindOffShore']:
+    for tech in ['Solar','WindOnShore','WindOffShore','WindOffShore_flot']:
         techno.loc[(2040,tech),'investCost']=techno.loc[(2020,tech),'investCost']*Param_list['CAPEX_EnR'][Scenario_list[Scenario]['CAPEX_EnR']]
         techno.loc[(2030,tech),'investCost']=(techno.loc[(2020,tech),'investCost']+techno.loc[(2040,tech),'investCost'])/2
         techno.loc[(2040,tech),'operationCost']=techno.loc[(2020,tech),'operationCost']*Param_list['CAPEX_EnR'][Scenario_list[Scenario]['CAPEX_EnR']]
@@ -129,7 +109,7 @@ def modif_CAPEX(Scenario,techno,Stechno,Param_list,Scenario_list) :
 
 def capacity_Lim(Scenario,techno,Stechno,ElecMix,Param_list,Scenario_list):
     TECH_Fr=['OldNuke','Solar', 'WindOnShore','WindOffShore','CCG','NewNuke','WindOffShore','TAC','HydroRiver','HydroReservoir','curtailment','Interco','Coal_p']
-    TECH_SMR=['Solar', 'WindOnShore','WindOffShore','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
+    TECH_SMR=['Solar', 'WindOnShore','WindOffShore_flot','SMR_class_ex','SMR_class','SMR_elec','SMR_elecCCS1','SMR_CCS1','SMR_CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL','cracking']
     STECH_Fr=['Battery','STEP']
     STECH_SMR=['Battery','tankH2_G']
     technoFr=techno.loc[slice(None),TECH_Fr,:]
@@ -322,7 +302,7 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     Zones = "Fr";
     year = '2020-2050';
     PrixRes = 'fixe'
-    Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'WindOffShore', 'CCG', 'NewNuke', 'WindOffShore', 'TAC','HydroRiver', 'HydroReservoir', 'curtailment', 'Interco', 'Coal_p']
+    Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'WindOffShore', 'CCG', 'NewNuke', 'TAC','HydroRiver', 'HydroReservoir', 'curtailment', 'Interco', 'Coal_p']
     Selected_STECH = ['Battery', 'STEP']
     dic_eco = {2020: 1, 2030: 2, 2040: 3, 2050: 4}
     dic_an = {1: 2020, 2: 2030, 3: 2040, 4: 2050}
@@ -369,7 +349,7 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     carbonContent = carbon_content.set_index('YEAR_op').rename(index=dic_eco).set_index(['TIMESTAMP'], append=True)
     ResParameters = ResParameters.loc[(slice(None), slice(None), ['electricity', 'gaz', 'hydrogen', 'uranium'])]
     gazPrice = (pd.DataFrame(Variables['importCosts_Pvar'].set_index(['YEAR_op', 'RESOURCES']).loc[(slice(None), ['gazBio', 'gazNat']), 'importCosts_Pvar']).rename(columns={0: 'gazPrice'}).fillna(0).groupby('YEAR_op').sum()).join(pd.DataFrame(Variables['importation_Dvar'].groupby(['YEAR_op', 'RESOURCES']).sum().drop(columns=['TIMESTAMP']).loc[(slice(None), ['gazBio', 'gazNat']), 'importation_Dvar']).rename(columns={0: 'gazPrice'}).fillna(0).groupby('YEAR_op').sum())
-    gazPrice['gazPrice'] = gazPrice['importCosts_Pvar'] / gazPrice['importation_Dvar']
+    gazPrice['gazPrice'] = (gazPrice['importCosts_Pvar'] / gazPrice['importation_Dvar']).fillna(0)
     for yr in [2, 3, 4]: ResParameters.loc[(yr, slice(None), ['gaz']), 'importCost'] = gazPrice.loc[yr]['gazPrice']
 
     model = GetElectricPriceModel(elecProd, marketPrice, ResParameters, TechParameters, capaCosts, carbonContent,conversionFactor, isAbstract=False)
@@ -396,8 +376,8 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     # marketPrice.loc[elecProd.loc[(2,slice(None),'WindOffShore')].loc[elecProd.loc[(2,slice(None),'WindOffShore')]['power_Dvar']>0].index,'NewPrice1']=list(marketPrice.loc[elecProd.loc[(2,slice(None),'WindOffShore')].loc[elecProd.loc[(2,slice(None),'WindOffShore')]['power_Dvar']>0].index]['NewPrice']+15.28)
 
     # test
-    test='energyCtr'
-    #test = 'NewPrice'
+    #test='energyCtr'
+    test = 'NewPrice'
 
     TECHNO = list(elecProd.index.get_level_values('TECHNOLOGIES').unique())
     TIMESTAMP = list(elecProd.index.get_level_values('TIMESTAMP').unique())

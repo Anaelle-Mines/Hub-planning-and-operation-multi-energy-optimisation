@@ -83,3 +83,7 @@ electricity,cracking,-0.84
 hydrogen,cracking,1
 gaz,cracking,-2.33
 uranium,cracking,0
+electricity,WindOffShore_flot,1
+hydrogen,WindOffShore_flot,0
+gaz,WindOffShore_flot,0
+uranium,WindOffShore_flot,0

@@ -13,7 +13,7 @@ def loadScenario(scenario, printTables=False):
 
     TechParameters = scenario['conversionTechs'].transpose().fillna(0)
     TechParameters.index.name='TECHNOLOGIES'
-    TechParametersList = ['powerCost','operationCost', 'investCost','EnergyNbhourCap','minCapacity','maxCapacity','RampConstraintPlus','RampConstraintMoins','RampConstraintPlus2','RampConstraintMoins2','EmissionCO2', 'capacityLim']
+    TechParametersList = ['powerCost','operationCost', 'investCost','EnergyNbhourCap','minInstallCapacity','maxInstallCapacity','RampConstraintPlus','RampConstraintMoins','RampConstraintPlus2','RampConstraintMoins2','EmissionCO2', 'minCumulCapacity','maxCumulCapacity']
     for k in TechParametersList:
         if k not in TechParameters:
             TechParameters[k] = 0 
@@ -545,19 +545,24 @@ def systemModelPedro(scenario,isAbstract=False):
         return model.stockLevel_Pvar[y,t, s_tech] <= model.Cmax_Pvar[y,s_tech]
     model.StockCapacityCtr = Constraint(model.YEAR_op,model.TIMESTAMP, model.STOCK_TECHNO, rule=StockCapacity_rule)
 
-    if "capacityLim" in TechParameters:
-        def capacityLim_rule(model, y,tech):  # INEQ forall t, tech
-            return model.capacityLim[y,tech] >= model.capacity_Pvar[y+dy,tech]
-        model.capacityLimCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=capacityLim_rule)
+    if "maxCumulCapacity" in TechParameters:
+        def capacityLimUP_rule(model, y,tech):  # INEQ forall t, tech
+            return model.maxCumulCapacity[y,tech] >= model.capacity_Pvar[y+dy,tech]
+        model.capacityLimUPCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=capacityLimUP_rule)
 
-    if "maxCapacity" in TechParameters:
+    if "minCumulCapacity" in TechParameters:
+        def capacityLimUB_rule(model, y,tech):  # INEQ forall t, tech
+            return model.minCumulCapacity[y,tech] <= model.capacity_Pvar[y+dy,tech]
+        model.capacityLimUBCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=capacityLimUB_rule)
+
+    if "minInstallCapacity" in TechParameters:
         def maxCapacity_rule(model, y,tech):  # INEQ forall t, tech
-            return model.maxCapacity[y, tech] >= model.capacityInvest_Dvar[y, tech]
+            return model.minInstallCapacity[y, tech] <= model.capacityInvest_Dvar[y, tech]
         model.maxCapacityCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=maxCapacity_rule)
 
-    if "minCapacity" in TechParameters:
+    if "maxInstallCapacity" in TechParameters:
         def minCapacity_rule(model,y, tech):  # INEQ forall t, tech
-            return model.minCapacity[y,tech] <= model.capacityInvest_Dvar[y,tech]
+            return model.maxInstallCapacity[y,tech] >= model.capacityInvest_Dvar[y,tech]
         model.minCapacityCtr = Constraint(model.YEAR_invest, model.TECHNOLOGIES,rule=minCapacity_rule)
 
     if "EnergyNbhourCap" in TechParameters:

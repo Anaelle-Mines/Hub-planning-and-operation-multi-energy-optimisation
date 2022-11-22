@@ -106,7 +106,7 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     model.TotalCostsCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=TotalCostsDef_rule)
 
     def AjustDef_rule(model,y,tech):
-        if tech in ['Interco','curtailment']:
+        if tech in ['Interco','curtailment','CCG']:
             return Constraint.Skip
         else :
             return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
@@ -116,9 +116,9 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
         if tech == 'Solar' :
             return model.varCosts[y-1,tech] + model.AjustFac[y,tech] <= model.varCosts[y-1,'WindOnShore'] + model.AjustFac[y,'WindOnShore']
         if tech == 'WindOnShore' :
-            return  model.varCosts[y-1,tech] + model.AjustFac[y,tech] <=  model.varCosts[y-1,'WindOffShore'] + model.AjustFac[y,'WindOffShore']
+            return  model.varCosts[y-1,tech] + model.AjustFac[y,tech] <= model.varCosts[y-1,'WindOffShore'] + model.AjustFac[y,'WindOffShore']
         if tech == 'WindOffShore' :
-            return  model.varCosts[y-1,tech] + model.AjustFac[y,tech] <= sum((-model.conversionFactor[res, 'NewNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-1,'NewNuke'] + model.AjustFac[y,'NewNuke']
+            return  model.varCosts[y-1,tech] + model.AjustFac[y,tech] <= sum((-model.conversionFactor[res, 'NewNuke']) * model.importCosts[y, 1, res] for res in['uranium', 'gaz', 'hydrogen', ]) + model.varCosts[y - 1, 'NewNuke'] + model.AjustFac[y, 'NewNuke']
         if tech == 'NewNuke' :
             return sum((-model.conversionFactor[res, 'NewNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-1,'NewNuke'] + model.AjustFac[y,'NewNuke'] <= sum((-model.conversionFactor[res, 'OldNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-1,'OldNuke'] + model.AjustFac[y,'OldNuke']
         if tech == 'OldNuke' :
@@ -133,5 +133,4 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
         return model.AjustFac[y,tech] <= 150
     model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
 
-
-    return model;
+    return model

@@ -13,8 +13,6 @@ from Functions.f_optimization import getVariables_panda, getConstraintsDual_pand
 from scenarios import scenario
 
 
-
-
 solver= 'mosek'
 
 print('Building model...')

@@ -240,7 +240,7 @@ scenario['economicParameters'] = pd.DataFrame({
     }
 )
 
-df_res_ref = pd.read_csv('./Data/Input/set2020-2050_horaire_TIMExRESxYEAR.csv', 
+df_res_ref = pd.read_csv('./Data/Raw/set2020-2050_horaire_TIMExRESxYEAR.csv',
     sep=',', decimal='.', skiprows=0,comment="#").set_index(["YEAR", "TIMESTAMP",'RESOURCES'])
 
 scenario['resourceImportPrices'] = pd.concat(
