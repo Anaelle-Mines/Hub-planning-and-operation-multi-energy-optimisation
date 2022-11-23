@@ -1,9 +1,9 @@
 ,YEAR_invest,STOCK_TECHNO,CmaxDel_Dvar
-0,2040,Battery,0.0
-1,2040,STEP,0.0
-2,2010,Battery,0.0
-3,2010,STEP,0.0
-4,2020,Battery,0.0
-5,2020,STEP,0.0
-6,2030,Battery,0.0
-7,2030,STEP,0.0
+0,2040,STEP,0.0
+1,2040,Battery,0.0
+2,2010,STEP,0.0
+3,2010,Battery,0.0
+4,2020,STEP,0.0
+5,2020,Battery,0.0
+6,2030,STEP,0.0
+7,2030,Battery,0.0

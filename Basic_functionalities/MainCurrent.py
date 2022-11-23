@@ -81,6 +81,10 @@ ElecMix= {'100%':{'Solar':[52,100,130],'WindOnShore':[45,70,95],'WindOffShore':[
 
 #endregion
 
+scenario = scenarioFr
+outputFolder = outputFolderFr
+
+
 #region Electricity data creation (France scenario)
 
 print('Building model France...')
@@ -105,10 +109,17 @@ except:
 
 for k, v in res['variables'].items():
     v.to_csv(outputFolderFr +'/' + k + '.csv',index=True)
-res['constraints']['energyCtr'].to_csv(outputFolderFr +'/elecPrice.csv',index=True)
 
-print(res['constraints']['energyCtr'])
-#print(res['Variables']['capacity_Pvar'])
+Prix_elec = round(res['constraints']['energyCtr'].set_index('RESOURCES').loc['electricity'].set_index(['YEAR_op','TIMESTAMP']),2)
+Carbon = res['variables']['carbon_Pvar'].set_index(['YEAR_op', 'TIMESTAMP'])
+Carbon.loc[Carbon['carbon_Pvar'] < 0.01] = 0
+Prod_elec = res['variables']['power_Dvar'].groupby(['YEAR_op', 'TIMESTAMP']).sum()
+Carbon_content = Carbon['carbon_Pvar'] / Prod_elec['power_Dvar']
+Carbon_content = round(Carbon_content.reset_index().set_index('YEAR_op').rename(columns={0: 'carbonContent'}).set_index('TIMESTAMP', append=True))
+Prix_elec.to_csv(outputFolderFr +'/elecPrice.csv',index=True)
+Carbon_content.to_csv(outputFolderFr +'/carbon.csv',index=True)
+
+print(res['variables']['capacity_Pvar'])
 
 pd.set_option('display.max_columns', 500)
 
@@ -185,7 +196,7 @@ plt.show()
 
 #endregion
 
-marketPrice=ElecPrice_optim(ScenarioName,SimulNameFr,solver='mosek',InputFolder = 'Data/Input/',OutputFolder = 'Data/output/')
+marketPrice=ElecPrice_optim(scenarioFr,solver='mosek',outputFolder = outputFolderFr)
 
 #region Monotones de prix
 

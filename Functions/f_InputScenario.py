@@ -297,38 +297,21 @@ def create_data(Scenario,ScenarioName,Scenario_list,Param_list,ElecMix,solver='m
 
     return
 
-def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/Input/',OutputFolder = 'Data/output/'):
+def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
 
-    Zones = "Fr";
-    year = '2020-2050';
-    PrixRes = 'fixe'
-    Selected_TECHNOLOGIES = ['OldNuke', 'Solar', 'WindOnShore', 'WindOffShore', 'CCG', 'NewNuke', 'TAC','HydroRiver', 'HydroReservoir', 'curtailment', 'Interco', 'Coal_p']
-    Selected_STECH = ['Battery', 'STEP']
-    dic_eco = {2020: 1, 2030: 2, 2040: 3, 2050: 4}
-    dic_an = {1: 2020, 2: 2030, 3: 2040, 4: 2050}
-    # reading areaConsumption availabilityFactor and TechParameters CSV files
-    areaConsumption, availabilityFactor, TechParameters, conversionFactor, ResParameters, Calendrier, StorageParameters, storageFactor, Economics, CarbonTax = loadingParameters_MultiTempo(Selected_TECHNOLOGIES, Selected_STECH, InputFolder=InputFolder + 'Input_' + ScenarioName + '/', Zones=Zones,year=year, PrixRes=PrixRes, dic_eco=dic_eco)
+    inputDict = loadScenario(scenario, False)
 
-    os.chdir(OutputFolder)
-    os.chdir(SimulName)
-    v_list = ['capacityInvest_Dvar', 'transInvest_Dvar', 'capacity_Pvar', 'capacityDel_Pvar', 'capacityDem_Dvar',
-              'energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar',
-              'stockLevel_Pvar', 'importation_Dvar', 'Cmax_Pvar', 'carbon_Pvar', 'powerCosts_Pvar',
-              'capacityCosts_Pvar', 'importCosts_Pvar', 'storageCosts_Pvar', 'turpeCosts_Pvar', 'Pmax_Pvar',
-              'max_PS_Dvar', 'carbonCosts_Pvar']
-    Variables = {v: pd.read_csv(v + '_' + SimulName + '.csv').drop(columns='Unnamed: 0') for v in v_list}
-    carbon_content = pd.read_csv('carbon_' + SimulName + '.csv')
-    elec_price = pd.read_csv('elecPrice_' + SimulName + '.csv')
-    os.chdir('..')
-    os.chdir('..')
-    os.chdir('..')
-    dic_eco = {2020: 1, 2030: 2, 2040: 3, 2050: 4}
-    elecProd = Variables['power_Dvar'].set_index('YEAR_op').rename(index=dic_eco).set_index(['TIMESTAMP', 'TECHNOLOGIES'], append=True)
-    marketPrice = elec_price.set_index('YEAR_op').rename(index=dic_eco).set_index(['TIMESTAMP'], append=True)
+    elecProd = pd.read_csv(outputFolder+'/power_Dvar.csv').drop(columns='Unnamed: 0').set_index(['YEAR_op','TIMESTAMP', 'TECHNOLOGIES'])
+    carbon_content = pd.read_csv(outputFolder+'/carbon.csv')
+    elec_price = pd.read_csv(outputFolder+'/elecPrice.csv')
+
+    marketPrice = elec_price.set_index(['YEAR_op','TIMESTAMP'])
     marketPrice['LastCalled'] = ""
 
     for i in marketPrice.index:
-        if elecProd.loc[(i[0], i[1], 'TAC')]['power_Dvar'] > 0:
+        if elecProd.loc[(i[0], i[1], 'Coal_p')]['power_Dvar'] > 0:
+            marketPrice.LastCalled.loc[i] = 'Coal_p'
+        elif elecProd.loc[(i[0], i[1], 'TAC')]['power_Dvar'] > 0:
             marketPrice.LastCalled.loc[i] = 'TAC'
         elif elecProd.loc[(i[0], i[1], 'CCG')]['power_Dvar'] > 0:
             marketPrice.LastCalled.loc[i] = 'CCG'
@@ -345,14 +328,14 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
         else:
             marketPrice.LastCalled.loc[i] = 'Undetermined'
 
-    capaCosts = Variables['capacityCosts_Pvar'].set_index('YEAR_op').rename(index=dic_eco).set_index(['TECHNOLOGIES'],append=True)
-    carbonContent = carbon_content.set_index('YEAR_op').rename(index=dic_eco).set_index(['TIMESTAMP'], append=True)
-    ResParameters = ResParameters.loc[(slice(None), slice(None), ['electricity', 'gaz', 'hydrogen', 'uranium'])]
-    gazPrice = (pd.DataFrame(Variables['importCosts_Pvar'].set_index(['YEAR_op', 'RESOURCES']).loc[(slice(None), ['gazBio', 'gazNat']), 'importCosts_Pvar']).rename(columns={0: 'gazPrice'}).fillna(0).groupby('YEAR_op').sum()).join(pd.DataFrame(Variables['importation_Dvar'].groupby(['YEAR_op', 'RESOURCES']).sum().drop(columns=['TIMESTAMP']).loc[(slice(None), ['gazBio', 'gazNat']), 'importation_Dvar']).rename(columns={0: 'gazPrice'}).fillna(0).groupby('YEAR_op').sum())
+    capaCosts = pd.read_csv(outputFolder+'/capacityCosts_Pvar.csv').drop(columns='Unnamed: 0').set_index(['YEAR_op','TECHNOLOGIES'])
+    carbonContent = carbon_content.set_index(['YEAR_op','TIMESTAMP'])
+    ResParameters = inputDict['resParameters'].loc[(slice(None), slice(None), ['electricity', 'gaz', 'hydrogen', 'uranium'])].reset_index().rename(columns={'YEAR':'YEAR_op'}).set_index(['YEAR_op','TIMESTAMP','RESOURCES'])
+    gazPrice = (pd.DataFrame(pd.read_csv(outputFolder+'/importCosts_Pvar.csv').drop(columns='Unnamed: 0').set_index(['YEAR_op', 'RESOURCES']).loc[(slice(None), ['gazBio', 'gazNat']), 'importCosts_Pvar']).fillna(0).groupby('YEAR_op').sum()).join(pd.DataFrame(pd.read_csv(outputFolder+'/importation_Dvar.csv').groupby(['YEAR_op', 'RESOURCES']).sum().drop(columns=['Unnamed: 0','TIMESTAMP']).loc[(slice(None), ['gazBio', 'gazNat']), 'importation_Dvar']).fillna(0).groupby('YEAR_op').sum())
     gazPrice['gazPrice'] = (gazPrice['importCosts_Pvar'] / gazPrice['importation_Dvar']).fillna(0)
-    for yr in [2, 3, 4]: ResParameters.loc[(yr, slice(None), ['gaz']), 'importCost'] = gazPrice.loc[yr]['gazPrice']
+    for yr in [2020, 2030, 2040,2050]: ResParameters.loc[(yr, slice(None), ['gaz']), 'importCost'] = gazPrice.loc[yr]['gazPrice']
 
-    model = GetElectricPriceModel(elecProd, marketPrice, ResParameters, TechParameters, capaCosts, carbonContent,conversionFactor, isAbstract=False)
+    model = GetElectricPriceModel(elecProd, marketPrice, ResParameters, inputDict['techParameters'], capaCosts, carbonContent,inputDict['conversionFactor'],inputDict['carbonTax'], isAbstract=False)
     opt = SolverFactory(solver)
     results = opt.solve(model)
     elec_var = getVariables_panda(model)
@@ -368,39 +351,34 @@ def ElecPrice_optim(ScenarioName,SimulName,solver='mosek',InputFolder = 'Data/In
     test = marketPrice.NewPrice == marketPrice.energyCtr
     print(test.loc[test == False])
 
-    # #méthode 2
-    # marketPrice['NewPrice']=marketPrice['energyCtr']
-    # marketPrice.loc[elecProd.loc[(2,slice(None),'Solar')].loc[elecProd.loc[(2,slice(None),'Solar')]['power_Dvar']>0].index,'NewPrice']=list(marketPrice.loc[elecProd.loc[(2,slice(None),'Solar')].loc[elecProd.loc[(2,slice(None),'Solar')]['power_Dvar']>0].index]['energyCtr']+34.26)
-    # marketPrice.loc[elecProd.loc[(3,slice(None),'Solar')].loc[elecProd.loc[(3,slice(None),'Solar')]['power_Dvar']>0].index,'NewPrice']=list(marketPrice.loc[elecProd.loc[(3,slice(None),'Solar')].loc[elecProd.loc[(3,slice(None),'Solar')]['power_Dvar']>0].index]['energyCtr']+5.19)
-    # marketPrice['NewPrice1']=marketPrice['NewPrice']
-    # marketPrice.loc[elecProd.loc[(2,slice(None),'WindOffShore')].loc[elecProd.loc[(2,slice(None),'WindOffShore')]['power_Dvar']>0].index,'NewPrice1']=list(marketPrice.loc[elecProd.loc[(2,slice(None),'WindOffShore')].loc[elecProd.loc[(2,slice(None),'WindOffShore')]['power_Dvar']>0].index]['NewPrice']+15.28)
-
     # test
-    #test='energyCtr'
-    test = 'NewPrice'
+    test='energyCtr'
+    #test = 'NewPrice'
 
     TECHNO = list(elecProd.index.get_level_values('TECHNOLOGIES').unique())
     TIMESTAMP = list(elecProd.index.get_level_values('TIMESTAMP').unique())
     RES = list(ResParameters.index.get_level_values('RESOURCES').unique())
+    RES.remove('hydrogen')
     RES.remove('electricity')
-    YEAR = list(elecProd.index.get_level_values('YEAR_op').unique())
+    YEAR = sorted(list(elecProd.index.get_level_values('YEAR_op').unique()))
+    dy=YEAR[1] - YEAR[0]
     elecProd['Revenus'] = elecProd['power_Dvar'] * marketPrice[test]
     Revenus = elecProd.Revenus.groupby(['YEAR_op', 'TECHNOLOGIES']).sum()
     TotalCosts = elecProd.groupby(['YEAR_op', 'TECHNOLOGIES']).sum().drop(columns=['power_Dvar', 'Revenus'])
 
     for tech in TECHNO:
-        df = pd.DataFrame({'YEAR_op': [2] * 8760 + [3] * 8760 + [4] * 8760,
-                           'TIMESTAMP': TIMESTAMP + TIMESTAMP + TIMESTAMP}).set_index(['YEAR_op', 'TIMESTAMP'])
+        df = pd.DataFrame({'YEAR_op': [2020] * 8760 + [2030] * 8760 + [2040] * 8760 + [2050]*8760,
+                           'TIMESTAMP': TIMESTAMP + TIMESTAMP + TIMESTAMP + TIMESTAMP}).set_index(['YEAR_op', 'TIMESTAMP'])
         for res in RES:
             df[res] = elecProd['power_Dvar'].loc[(slice(None), slice(None), tech)] * ResParameters['importCost'].loc[
-                (slice(None), slice(None), res)] * (-conversionFactor['conversionFactor'].loc[(res, tech)])
+                (slice(None), slice(None), res)] * (-inputDict['conversionFactor']['conversionFactor'].loc[(res, tech)])
         for y in YEAR:
             TotalCosts.loc[(y, tech), 'import'] = df.groupby('YEAR_op').sum().sum(axis=1).loc[y]
 
     for y in YEAR:
         for tech in TECHNO:
-            TotalCosts.loc[(y, tech), 'variable'] = elecProd['power_Dvar'].groupby(['YEAR_op', 'TECHNOLOGIES']).sum().loc[(y, tech)] * TechParameters['powerCost'].loc[(y - 1, tech)]
-            TotalCosts.loc[(y, tech), 'carbon'] = elecProd['power_Dvar'].groupby(['YEAR_op', 'TECHNOLOGIES']).sum().loc[(y, tech)] * pd.DataFrame({'YEAR_op': [2, 3, 4], 'TC': [0.1, 0.13, 0.15]}).set_index('YEAR_op')['TC'].loc[y]
+            TotalCosts.loc[(y, tech), 'variable'] = elecProd['power_Dvar'].groupby(['YEAR_op', 'TECHNOLOGIES']).sum().loc[(y, tech)] * inputDict['techParameters']['powerCost'].loc[(y - dy, tech)]
+            TotalCosts.loc[(y, tech), 'carbon'] = elecProd['power_Dvar'].groupby(['YEAR_op', 'TECHNOLOGIES']).sum().loc[(y, tech)] * inputDict['carbonTax']['carbonTax'].loc[y]
 
     TotalCosts['capacity'] = capaCosts['capacityCosts_Pvar']
     TotalCosts['total'] = TotalCosts['import'] + TotalCosts['variable'] + TotalCosts['carbon'] + TotalCosts['capacity']
