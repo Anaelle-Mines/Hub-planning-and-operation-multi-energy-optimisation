@@ -30,9 +30,9 @@ import time
 import datetime
 import seaborn as sb
 
-from Functions.f_multiResourceModels import *
+from Functions.f_Models_TP_Robin import *
 from Functions.f_optimization import *
-from Basic_functionalities.scenarios_TP import scenario
+from Basic_functionalities.scenarios_TP import *
 
 #endregion
 
@@ -41,9 +41,10 @@ outputPath='Data/output/'
 solver= 'mosek' ## no need for solverpath with mosek.
 #endregion
 
+scenario=Scenario_Heat(2030,inputPath='Data/Raw_TP/')
+
 print('Building model...')
 model = systemModel_MultiResource_WithStorage(scenario,isAbstract=False)
-
 start_clock = time.time()
 print('Calculating model...')
 opt = SolverFactory(solver)
