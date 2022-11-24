@@ -84,7 +84,6 @@ ElecMix= {'100%':{'Solar':[52,100,130],'WindOnShore':[45,70,95],'WindOffShore':[
 scenario = scenarioFr
 outputFolder = outputFolderFr
 
-
 #region Electricity data creation (France scenario)
 
 print('Building model France...')
@@ -119,7 +118,7 @@ Carbon_content = round(Carbon_content.reset_index().set_index('YEAR_op').rename(
 Prix_elec.to_csv(outputFolderFr +'/elecPrice.csv',index=True)
 Carbon_content.to_csv(outputFolderFr +'/carbon.csv',index=True)
 
-print(res['variables']['capacity_Pvar'])
+print(res['variables']['power_Dvar'].groupby(['YEAR_op','TECHNOLOGIES']).sum())
 
 pd.set_option('display.max_columns', 500)
 

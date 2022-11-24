@@ -16,10 +16,10 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     :param isAbstract: boolean true is the model should be abstract. ConcreteModel otherwise
     :return: pyomo model
     """
-   TechParameters = inputDict['techParameters']
-   ResParameters=inputDict['resParameters']
-   carbonTax=inputDict['carbonTax']
-   conversionFactor=inputDict['conversionFactor']
+    #TechParameters = inputDict['techParameters']
+    #ResParameters=inputDict['resParameters']
+    #carbonTax=inputDict['carbonTax']
+    #conversionFactor=inputDict['conversionFactor']
 
     isAbstract=False
 
@@ -114,6 +114,8 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     def AjustDef_rule(model,y,tech):
         if tech in ['Interco','curtailment']:
             return Constraint.Skip
+        elif sum(model.elecProd[y,t,tech] for t in TIMESTAMP) == 0:
+            return Constraint.Skip
         else :
             return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
     model.AjustCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=AjustDef_rule)
@@ -137,8 +139,8 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
             return Constraint.Skip
     model.meritCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=meritDef_rule)
 
-    # def Lim_rule(model,y,tech):
-    #     return model.AjustFac[y,tech] <= 1500
-    # model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
+    def Lim_rule(model,y,tech):
+        return model.AjustFac[y,tech] <= 300000
+    model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
 
     return model

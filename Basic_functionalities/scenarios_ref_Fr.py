@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import interp1d
 import pandas as pd
 from Basic_functionalities import tech_eco_data
 
@@ -170,7 +171,7 @@ for k, year in enumerate(yearList[:-1]):
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
-                'lifeSpan': lifespan, 'powerCost': 18, 'investCost': capex, 'operationCost': opex,
+                'lifeSpan': lifespan, 'powerCost': 50, 'investCost': capex, 'operationCost': opex,
                 'minInstallCapacity': min_install_capacity[k],'maxInstallCapacity': max_install_capacity[k],
                 'EmissionCO2': 1000, 'Conversion': {'electricity': 1},
                 'EnergyNbhourCap': 0, # used for hydroelectricity
@@ -325,13 +326,14 @@ scenarioFr['economicParameters'] = pd.DataFrame({
 df_res_ref = pd.read_csv(inputPath+'set2020-2050_horaire_TIMExRESxYEAR.csv',
     sep=',', decimal='.', skiprows=0,comment="#").set_index(["YEAR", "TIMESTAMP",'RESOURCES'])
 
+gasPriceFactor=[1,2,2,2]
 scenarioFr['resourceImportPrices'] = pd.concat(
     (
         pd.DataFrame(data={
             'YEAR': year, 
             'TIMESTAMP': t, 
             'electricity': df_res_ref.loc[(year, slice(None), 'electricity'),'importCost'].values,
-            'gazNat': 2 * df_res_ref.loc[(year, slice(None), 'gazNat'),'importCost'].values,
+            'gazNat': df_res_ref.loc[(year, slice(None), 'gazNat'),'importCost'].values*gasPriceFactor[k],
             'gazBio': df_res_ref.loc[(year, slice(None), 'gazBio'),'importCost'].values,
             'uranium': df_res_ref.loc[(year, slice(None), 'uranium'),'importCost'].values,
             'hydrogen': df_res_ref.loc[(year, slice(None), 'hydrogen'),'importCost'].values,
