@@ -1,13 +1,14 @@
 from pyomo.environ import *
 from pyomo.core import *
-import xarray as xr
+#import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from datetime import timedelta
 
 def loadScenario(scenario, printTables=False):
 
-    areaConsumption = scenario['resourceDemand'].melt(id_vars=['TIMESTAMP'], var_name=['RESOURCES'],value_name='areaConsumption').set_index(['TIMESTAMP', 'RESOURCES'])
+    areaConsumption = scenario['resourceDemand'].melt(id_vars=['Date'], var_name=['RESOURCES'],value_name='areaConsumption').set_index(['Date', 'RESOURCES'])
 
     TechParameters = scenario['conversionTechs'].transpose().fillna(0)
     TechParameters.index.name = 'TECHNOLOGIES'
@@ -41,10 +42,10 @@ def loadScenario(scenario, printTables=False):
         df[k1].index.name = 'RESOURCES'
         df[k1] = df[k1].reset_index(['RESOURCES']).melt(id_vars=['RESOURCES'], var_name='TECHNOLOGIES',value_name='storageFactor' + k2)
 
-    df['dissipation'] = pd.concat(pd.DataFrame(
-        data={'dissipation': df_sconv.loc[tech]['dissipation'],
-              'RESOURCES': df_sconv.loc[tech]['resource'],
-              'TECHNOLOGIES': tech}, index={0}) for tech in stechSet)
+    df['dissipation'] = pd.DataFrame.from_dict(
+        data={'dissipation': [df_sconv.loc[tech]['dissipation'] for tech in stechSet],
+              'RESOURCES': [df_sconv.loc[tech]['resource'] for tech in stechSet],
+              'TECHNOLOGIES': [tech for tech in stechSet]})
     storageFactors = pd.merge(df['charge'], df['discharge'], how='outer').fillna(0)
     storageFactors = pd.merge(storageFactors, df['dissipation'], how='outer').fillna(0).set_index(
         ['RESOURCES', 'TECHNOLOGIES'])
@@ -53,8 +54,8 @@ def loadScenario(scenario, printTables=False):
     Economics = scenario['economicParameters'].melt(var_name='Eco').set_index('Eco')
 
     ResParameters = pd.concat((
-        k.melt(id_vars=['TIMESTAMP'], var_name=['RESOURCES'], value_name=name).set_index(
-            ['TIMESTAMP', 'RESOURCES'])
+        k.melt(id_vars=['Date'], var_name=['RESOURCES'], value_name=name).set_index(
+            ['Date', 'RESOURCES'])
         for k, name in [(scenario['resourceImportPrices'], 'importCost'), (scenario['resourceImportCO2eq'], 'emission')]
     ), axis=1)
 
@@ -85,7 +86,7 @@ def loadScenario(scenario, printTables=False):
 
     return inputDict
 
-def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
+def systemModel_MultiResource_WithStorage(Parameters):
     """
     This function creates the pyomo model and initlize the Parameters and (pyomo) Set values
     :param areaConsumption: panda table with consumption
@@ -94,21 +95,19 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     :return: pyomo model
     """
 
-    inputDict = loadScenario(scenario, False)
 
-
-    areaConsumption = inputDict["areaConsumption"]
-    availabilityFactor = inputDict["availabilityFactor"]
-    TechParameters = inputDict["techParameters"]
-    ResParameters = inputDict["resParameters"]
-    conversionFactor = inputDict["conversionFactor"]
-    Economics = inputDict["economics"]
-    Calendrier = inputDict["calendar"]
-    StorageParameters = inputDict["storageParameters"]
-    storageFactors = inputDict["storageFactors"]
-    CarbonTax = inputDict["carbonTax"]
-    carbonGoals = inputDict["carbonGoals"]
-    gasBio_max = inputDict["maxBiogasCap"]
+    areaConsumption = Parameters["areaConsumption"]
+    availabilityFactor = Parameters["availabilityFactor"]
+    TechParameters = Parameters["techParameters"]
+    ResParameters = Parameters["resParameters"]
+    conversionFactor = Parameters["conversionFactor"]
+    Economics = Parameters["economics"]
+    Calendrier = Parameters["calendar"]
+    StorageParameters = Parameters["storageParameters"]
+    storageFactors = Parameters["storageFactors"]
+    CarbonTax = Parameters["carbonTax"]
+    carbonGoals = Parameters["carbonGoals"]
+    gasBio_max = Parameters["maxBiogasCap"]
 
     isAbstract = False
     availabilityFactor.isna().sum()
@@ -122,17 +121,17 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     TECHNOLOGIES = set(TechParameters.index.get_level_values('TECHNOLOGIES').unique())
     STOCK_TECHNO = set(StorageParameters.index.get_level_values('STOCK_TECHNO').unique())
     RESOURCES = set(ResParameters.index.get_level_values('RESOURCES').unique())
-    TIMESTAMP = set(areaConsumption.index.get_level_values('TIMESTAMP').unique())
+    Date = set(areaConsumption.index.get_level_values('Date').unique())
 
-    TIMESTAMP_list = areaConsumption.index.get_level_values('TIMESTAMP').unique()
-
+    Date_list = areaConsumption.index.get_level_values('Date').unique()
+    Last_date = Date_list[len(Date_list)-1]
     HORAIRE = {'P', 'HPH', 'HCH', 'HPE', 'HCE'}
     # Subsets
-    TIMESTAMP_HCH = set(Calendrier[Calendrier['Calendrier'] == 'HCH'].index.get_level_values('TIMESTAMP').unique())
-    TIMESTAMP_HPH = set(Calendrier[Calendrier['Calendrier'] == 'HPH'].index.get_level_values('TIMESTAMP').unique())
-    TIMESTAMP_HCE = set(Calendrier[Calendrier['Calendrier'] == 'HCE'].index.get_level_values('TIMESTAMP').unique())
-    TIMESTAMP_HPE = set(Calendrier[Calendrier['Calendrier'] == 'HPE'].index.get_level_values('TIMESTAMP').unique())
-    TIMESTAMP_P = set(Calendrier[Calendrier['Calendrier'] == 'P'].index.get_level_values('TIMESTAMP').unique())
+    Date_HCH = set(Calendrier[Calendrier['Calendrier'] == 'HCH'].index.get_level_values('Date').unique())
+    Date_HPH = set(Calendrier[Calendrier['Calendrier'] == 'HPH'].index.get_level_values('Date').unique())
+    Date_HCE = set(Calendrier[Calendrier['Calendrier'] == 'HCE'].index.get_level_values('Date').unique())
+    Date_HPE = set(Calendrier[Calendrier['Calendrier'] == 'HPE'].index.get_level_values('Date').unique())
+    Date_P = set(Calendrier[Calendrier['Calendrier'] == 'P'].index.get_level_values('Date').unique())
 
     #####################
     #    Pyomo model    #
@@ -149,25 +148,25 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     model.TECHNOLOGIES = Set(initialize=TECHNOLOGIES, ordered=False)
     model.STOCK_TECHNO = Set(initialize=STOCK_TECHNO, ordered=False)
     model.RESOURCES = Set(initialize=RESOURCES, ordered=False)
-    model.TIMESTAMP = Set(initialize=TIMESTAMP, ordered=False)
+    model.Date = Set(initialize=Date, ordered=False)
     model.HORAIRE = Set(initialize=HORAIRE, ordered=False)
-    model.TIMESTAMP_TECHNOLOGIES = model.TIMESTAMP * model.TECHNOLOGIES
-    model.TIMESTAMP_STOCKTECHNO = model.TIMESTAMP * model.STOCK_TECHNO
+    model.Date_TECHNOLOGIES = model.Date * model.TECHNOLOGIES
+    model.Date_STOCKTECHNO = model.Date * model.STOCK_TECHNO
     model.RESOURCES_TECHNOLOGIES = model.RESOURCES * model.TECHNOLOGIES
     model.RESOURCES_STOCKTECHNO = model.RESOURCES * model.STOCK_TECHNO
-    model.TIMESTAMP_RESOURCES =model.TIMESTAMP * model.RESOURCES
+    model.Date_RESOURCES =model.Date * model.RESOURCES
 
     # Subset of Simple only required if ramp constraint
-    model.TIMESTAMP_MinusOne = Set(initialize=TIMESTAMP_list[: len(TIMESTAMP) - 1], ordered=False)
-    model.TIMESTAMP_MinusThree = Set(initialize=TIMESTAMP_list[: len(TIMESTAMP) - 3], ordered=False)
+    model.Date_MinusOne = Set(initialize=Date_list[: len(Date) - 1], ordered=False)
+    model.Date_MinusThree = Set(initialize=Date_list[: len(Date) - 3], ordered=False)
 
     ###############
     # Parameters ##
     ###############
-    model.areaConsumption = Param(model.TIMESTAMP_RESOURCES, default=0,
+    model.areaConsumption = Param(model.Date_RESOURCES, default=0,
                                   initialize=areaConsumption.loc[:, "areaConsumption"].squeeze().to_dict(),
                                   domain=Reals)
-    model.availabilityFactor = Param(model.TIMESTAMP_TECHNOLOGIES, domain=PercentFraction, default=1,
+    model.availabilityFactor = Param(model.Date_TECHNOLOGIES, domain=PercentFraction, default=1,
                                      initialize=availabilityFactor.loc[:, "availabilityFactor"].squeeze().to_dict())
     model.conversionFactor = Param(model.RESOURCES_TECHNOLOGIES, default=0,
                                    initialize=conversionFactor.loc[:, "conversionFactor"].squeeze().to_dict())
@@ -183,12 +182,12 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     for COLNAME in ResParameters:
         if COLNAME not in ["TECHNOLOGIES", "AREAS", "YEAR"]:  ### each column in TechParameters will be a parameter
-            exec("model." + COLNAME + "= Param(model.TIMESTAMP_RESOURCES, domain=NonNegativeReals,default=0," +
+            exec("model." + COLNAME + "= Param(model.Date_RESOURCES, domain=NonNegativeReals,default=0," +
                  "initialize=ResParameters." + COLNAME + ".squeeze().to_dict())")
 
     for COLNAME in Calendrier:
-        if COLNAME not in ["TIMESTAMP", "AREAS"]:
-            exec("model." + COLNAME + " = Param(model.TIMESTAMP, default=0," +
+        if COLNAME not in ["Date", "AREAS"]:
+            exec("model." + COLNAME + " = Param(model.Date, default=0," +
                  "initialize=Calendrier." + COLNAME + ".squeeze().to_dict(),domain=Any)")
 
     for COLNAME in StorageParameters:
@@ -208,17 +207,17 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     # In this section, variables are separated in two categories : decision variables wich are the reals variables of the otimisation problem (these are noted Dvar), and problem variables which are resulting of calculation and are convenient for the readability and the analyse of results (these are noted Pvar)
 
     # Operation
-    model.power_Dvar = Var(model.TIMESTAMP, model.TECHNOLOGIES,domain=NonNegativeReals)  ### Power of a conversion mean at time t
-    model.importation_Dvar = Var( model.TIMESTAMP, model.RESOURCES, domain=NonNegativeReals,initialize=0)  ### Improtation of a resource at time t
-    model.energy_Pvar = Var(model.TIMESTAMP, model.RESOURCES)  ### Amount of a resource at time t
+    model.power_Dvar = Var(model.Date, model.TECHNOLOGIES,domain=NonNegativeReals)  ### Power of a conversion mean at time t
+    model.importation_Dvar = Var( model.Date, model.RESOURCES, domain=NonNegativeReals,initialize=0)  ### Improtation of a resource at time t
+    model.energy_Pvar = Var(model.Date, model.RESOURCES)  ### Amount of a resource at time t
     model.max_PS_Dvar = Var(model.HORAIRE,domain=NonNegativeReals)  ### Puissance souscrite max par plage horaire pour l'année d'opération y
-    model.carbon_Pvar = Var( model.TIMESTAMP)  ### CO2 emission at each time t
+    model.carbon_Pvar = Var( model.Date)  ### CO2 emission at each time t
 
     ### Storage operation variables
-    model.stockLevel_Pvar = Var( model.TIMESTAMP, model.STOCK_TECHNO,domain=NonNegativeReals)  ### level of the energy stock in a storage mean at time t
-    model.storageIn_Pvar = Var( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy stored in a storage mean at time t
-    model.storageOut_Pvar = Var( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy taken out of the in a storage mean at time t
-    model.storageConsumption_Pvar = Var( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy consumed the in a storage mean at time t (other than the one stored)
+    model.stockLevel_Pvar = Var( model.Date, model.STOCK_TECHNO,domain=NonNegativeReals)  ### level of the energy stock in a storage mean at time t
+    model.storageIn_Dvar = Var( model.Date, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy stored in a storage mean at time t
+    model.storageOut_Dvar = Var( model.Date, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy taken out of the in a storage mean at time t
+    model.storageConsumption_Pvar = Var( model.Date, model.RESOURCES, model.STOCK_TECHNO,domain=NonNegativeReals)  ### Energy consumed the in a storage mean at time t (other than the one stored)
 
     # Investment
     model.capacity_Dvar = Var(model.TECHNOLOGIES, domain=NonNegativeReals, initialize=0)
@@ -231,7 +230,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     model.importCosts_Pvar = Var(model.RESOURCES)  ### Cost of ressource imported, explicitely defined by definition importCostsDef
     model.turpeCosts_Pvar = Var(model.RESOURCES,domain=NonNegativeReals)  ### Coûts TURPE pour électricité
     model.storageCosts_Pvar = Var(model.STOCK_TECHNO)  ### Cost of storage for a storage mean, explicitely defined by definition storageCostsDef
-    model.carbonCosts_Pvar = Var(domain=NonNegativeReals)
+    model.carbonCosts_Pvar = Var(model.Date,domain=NonNegativeReals)
 
     model.dual = Suffix(direction=Suffix.IMPORT)
     model.rc = Suffix(direction=Suffix.IMPORT)
@@ -246,7 +245,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
                + sum(model.importCosts_Pvar[res] for res in model.RESOURCES)\
                + sum(model.storageCosts_Pvar[s_tech] for s_tech in STOCK_TECHNO)\
                + model.turpeCosts_Pvar['electricity']\
-               + model.carbonCosts_Pvar
+               + sum(model.carbonCosts_Pvar[t] for t in Date)
     model.OBJ = Objective(rule=ObjectiveFunction_rule, sense=minimize)
 
     #################
@@ -259,8 +258,8 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
         return r / ((1 + r) * (1 - (1 + r) ** -n))
 
     # powerCosts definition Constraints
-    def powerCostsDef_rule(model,tech):  # EQ forall tech in TECHNOLOGIES powerCosts  = sum{t in TIMESTAMP} powerCost[tech]*power[t,tech] / 1E6;
-        return sum(model.powerCost[tech] * model.power_Dvar[t, tech] for t in model.TIMESTAMP) == model.powerCosts_Pvar[tech]
+    def powerCostsDef_rule(model,tech):  # EQ forall tech in TECHNOLOGIES powerCosts  = sum{t in Date} powerCost[tech]*power[t,tech] / 1E6;
+        return sum(model.powerCost[tech] * model.power_Dvar[t, tech] for t in model.Date) == model.powerCosts_Pvar[tech]
     model.powerCostsCtr = Constraint( model.TECHNOLOGIES, rule=powerCostsDef_rule)
 
     # capacityCosts definition Constraints
@@ -270,13 +269,13 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     # importCosts definition Constraints
     def importCostsDef_rule(model, res):
-        return sum((model.importCost[t, res] * model.importation_Dvar[t, res]) for t in model.TIMESTAMP) == model.importCosts_Pvar[ res]
+        return sum((model.importCost[t, res] * model.importation_Dvar[t, res]) for t in model.Date) == model.importCosts_Pvar[ res]
     model.importCostsCtr = Constraint(model.RESOURCES, rule=importCostsDef_rule)
 
     # # gaz definition Constraints
     # def BiogasDef_rule(model,res):
     #     if res == 'gasBio':
-    #         return sum(model.importation_Dvar[t, res] for t in model.TIMESTAMP) <= gasBio_max
+    #         return sum(model.importation_Dvar[t, res] for t in model.Date) <= gasBio_max
     #     else:
     #         return Constraint.Skip
     # model.BiogasCtr = Constraint(model.RESOURCES, rule=BiogasDef_rule)
@@ -284,38 +283,38 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     # Carbon emission definition Constraints
     def CarbonDef_rule(model,  t):
         return sum((model.power_Dvar[t, tech] * model.EmissionCO2[ tech]) for tech in model.TECHNOLOGIES) + sum(model.importation_Dvar[t, res] * model.emission[t, res] for res in model.RESOURCES) == model.carbon_Pvar[ t]
-    model.CarbonDefCtr = Constraint( model.TIMESTAMP, rule=CarbonDef_rule)
+    model.CarbonDefCtr = Constraint( model.Date, rule=CarbonDef_rule)
 
     # def CarbonCtr_rule(model):
-    #     return sum(model.carbon_Pvar[t] for t in model.TIMESTAMP) <= carbonGoals
+    #     return sum(model.carbon_Pvar[t] for t in model.Date) <= carbonGoals
     # model.CarbonCtr = Constraint(rule=CarbonCtr_rule)
 
     # CarbonCosts definition Constraint
-    def CarbonCosts_rule(model):
-        return model.carbonCosts_Pvar == sum(model.carbon_Pvar[t] * CarbonTax for t in model.TIMESTAMP)
-    model.CarbonCostsCtr = Constraint( rule=CarbonCosts_rule)
+    def CarbonCosts_rule(model,t):
+        return model.carbonCosts_Pvar[t] == model.carbon_Pvar[t] * CarbonTax
+    model.CarbonCostsCtr = Constraint(model.Date, rule=CarbonCosts_rule)
 
     # TURPE
     def PuissanceSouscrite_rule(model,t, res):
         if res == 'electricity':
-            if t in TIMESTAMP_P:
+            if t in Date_P:
                 return model.max_PS_Dvar['P'] >= model.importation_Dvar[t, res]  # en MW
-            elif t in TIMESTAMP_HPH:
+            elif t in Date_HPH:
                 return model.max_PS_Dvar['HPH'] >= model.importation_Dvar[t, res]
-            elif t in TIMESTAMP_HCH:
+            elif t in Date_HCH:
                 return model.max_PS_Dvar['HCH'] >= model.importation_Dvar[t, res]
-            elif t in TIMESTAMP_HPE:
+            elif t in Date_HPE:
                 return model.max_PS_Dvar['HPE'] >= model.importation_Dvar[t, res]
-            elif t in TIMESTAMP_HCE:
+            elif t in Date_HCE:
                 return model.max_PS_Dvar['HCE'] >= model.importation_Dvar[t, res]
         else:
             return Constraint.Skip
-    model.PuissanceSouscriteCtr = Constraint(model.TIMESTAMP, model.RESOURCES,rule=PuissanceSouscrite_rule)
+    model.PuissanceSouscriteCtr = Constraint(model.Date, model.RESOURCES,rule=PuissanceSouscrite_rule)
 
     def TurpeCtr_rule(model,res):
         if res == 'electricity':
             return model.turpeCosts_Pvar[res] == (
-                        sum(model.HTA[t] * model.importation_Dvar[t, res] for t in TIMESTAMP) + model.max_PS_Dvar['P'] * 16310
+                        sum(model.HTA[t] * model.importation_Dvar[t, res] for t in Date) + model.max_PS_Dvar['P'] * 16310
                         + (model.max_PS_Dvar['HPH'] - model.max_PS_Dvar[ 'P']) * 15760
                         + (model.max_PS_Dvar['HCH'] - model.max_PS_Dvar[ 'HPH']) * 13290
                         + (model.max_PS_Dvar[ 'HPE'] - model.max_PS_Dvar[ 'HCH']) * 8750
@@ -328,28 +327,28 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     def Capacity_rule(model, t, tech):  # INEQ forall t, tech
         return model.capacity_Dvar[tech] * model.availabilityFactor[ t, tech] >= model.power_Dvar[ t, tech]
-    model.CapacityCtr = Constraint(model.TIMESTAMP, model.TECHNOLOGIES, rule=Capacity_rule)
+    model.CapacityCtr = Constraint(model.Date, model.TECHNOLOGIES, rule=Capacity_rule)
 
     # Ressource production constraint
     def Production_rule(model, t,res):  # EQ forall t, res
         if res == 'gas':
             return sum(model.power_Dvar[t, tech] * model.conversionFactor[res, tech] for tech in model.TECHNOLOGIES) \
                    + sum(model.importation_Dvar[t, resource] for resource in gasTypes) \
-                   + sum(model.storageOut_Pvar[t, res, s_tech] - model.storageIn_Pvar[ t, res, s_tech] - model.storageConsumption_Pvar[ t, res, s_tech] for s_tech in STOCK_TECHNO) \
+                   + sum(model.storageOut_Dvar[t, res, s_tech] - model.storageIn_Dvar[ t, res, s_tech] - model.storageConsumption_Pvar[ t, res, s_tech] for s_tech in STOCK_TECHNO) \
                    == model.energy_Pvar[ t, res]
         elif res in gasTypes:
             return model.energy_Pvar[t, res] == 0
         else:
             return sum(model.power_Dvar[ t, tech] * model.conversionFactor[res, tech] for tech in model.TECHNOLOGIES) \
                    + model.importation_Dvar[ t, res] \
-                   + sum(model.storageOut_Pvar[ t, res, s_tech] - model.storageIn_Pvar[ t, res, s_tech] - model.storageConsumption_Pvar[ t, res, s_tech] for s_tech in STOCK_TECHNO) \
+                   + sum(model.storageOut_Dvar[ t, res, s_tech] - model.storageIn_Dvar[ t, res, s_tech] - model.storageConsumption_Pvar[ t, res, s_tech] for s_tech in STOCK_TECHNO) \
                    == model.energy_Pvar[t, res]
-    model.ProductionCtr = Constraint( model.TIMESTAMP, model.RESOURCES, rule=Production_rule)
+    model.ProductionCtr = Constraint( model.Date, model.RESOURCES, rule=Production_rule)
 
     # contrainte d'equilibre offre demande
     def energyCtr_rule(model, t, res):  # INEQ forall t
         return model.energy_Pvar[ t, res] == model.areaConsumption[ t, res]
-    model.energyCtr = Constraint( model.TIMESTAMP, model.RESOURCES, rule=energyCtr_rule)
+    model.energyCtr = Constraint( model.Date, model.RESOURCES, rule=energyCtr_rule)
 
     # storageCosts definition Constraint
     def storageCostsDef_rule(model, s_tech):  # EQ forall s_tech in STOCK_TECHNO
@@ -371,17 +370,17 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     # contraintes de stock puissance
     def StoragePowerUB_rule(model, t, res, s_tech):  # INEQ forall t
         if res == model.resource[ s_tech]:
-            return model.storageIn_Pvar[ t, res, s_tech] <= model.Pmax_Dvar[ s_tech]
+            return model.storageIn_Dvar[ t, res, s_tech] <= model.Pmax_Dvar[ s_tech]
         else:
-            return model.storageIn_Pvar[ t, res, s_tech] == 0
-    model.StoragePowerUBCtr = Constraint( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,rule=StoragePowerUB_rule)
+            return model.storageIn_Dvar[ t, res, s_tech] == 0
+    model.StoragePowerUBCtr = Constraint( model.Date, model.RESOURCES, model.STOCK_TECHNO,rule=StoragePowerUB_rule)
 
     def StoragePowerLB_rule(model,  t, res, s_tech, ):  # INEQ forall t
         if res == model.resource[s_tech]:
-            return model.storageOut_Pvar[ t, res, s_tech] <= model.Pmax_Dvar[ s_tech]
+            return model.storageOut_Dvar[ t, res, s_tech] <= model.Pmax_Dvar[ s_tech]
         else:
-            return model.storageOut_Pvar[ t, res, s_tech] == 0
-    model.StoragePowerLBCtr = Constraint( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,rule=StoragePowerLB_rule)
+            return model.storageOut_Dvar[ t, res, s_tech] == 0
+    model.StoragePowerLBCtr = Constraint( model.Date, model.RESOURCES, model.STOCK_TECHNO,rule=StoragePowerLB_rule)
 
     # contrainte de consommation du stockage (autre que l'énergie stockée)
     def StorageConsumption_rule(model,  t, res, s_tech):  # EQ forall t
@@ -389,28 +388,28 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
         if res == temp:
             return model.storageConsumption_Pvar[t, res, s_tech] == 0
         else:
-            return model.storageConsumption_Pvar[ t, res, s_tech] == model.storageFactorIn[res, s_tech] * model.storageIn_Pvar[ t, temp, s_tech] + model.storageFactorOut[res, s_tech] * model.storageOut_Pvar[t, temp, s_tech]
-    model.StorageConsumptionCtr = Constraint( model.TIMESTAMP, model.RESOURCES, model.STOCK_TECHNO,rule=StorageConsumption_rule)
+            return model.storageConsumption_Pvar[ t, res, s_tech] == model.storageFactorIn[res, s_tech] * model.storageIn_Dvar[ t, temp, s_tech] + model.storageFactorOut[res, s_tech] * model.storageOut_Dvar[t, temp, s_tech]
+    model.StorageConsumptionCtr = Constraint( model.Date, model.RESOURCES, model.STOCK_TECHNO,rule=StorageConsumption_rule)
 
     # contraintes de stock capacité
     def StockLevel_rule(model, t, s_tech):  # EQ forall t
         res = model.resource[s_tech]
-        if t > 1:
+        if t != min(getattr(model, "Date").data()):
+            t_moins_1 = t_moins_1 = t - timedelta(hours=1)
             return model.stockLevel_Pvar[ t, s_tech] == \
-                   model.stockLevel_Pvar[t - 1, s_tech] * (1 - model.dissipation[res, s_tech]) \
-                   + model.storageIn_Pvar[ t, res, s_tech] * model.storageFactorIn[res, s_tech]\
-                   - model.storageOut_Pvar[t, res, s_tech] * model.storageFactorOut[res, s_tech]
+                   model.stockLevel_Pvar[t_moins_1, s_tech] * (1 - model.dissipation[res, s_tech]) \
+                   + model.storageIn_Dvar[ t, res, s_tech] * model.storageFactorIn[res, s_tech]\
+                   - model.storageOut_Dvar[t, res, s_tech] * model.storageFactorOut[res, s_tech]
         else:
             return model.stockLevel_Pvar[t, s_tech] == \
-                   model.stockLevel_Pvar[ 8760, s_tech] \
-                   + model.storageIn_Pvar[t, res, s_tech] * model.storageFactorIn[res, s_tech] \
-                   - model.storageOut_Pvar[t, res, s_tech] * model.storageFactorOut[res, s_tech]
-    model.StockLevelCtr = Constraint( model.TIMESTAMP, model.STOCK_TECHNO, rule=StockLevel_rule)
+                   model.stockLevel_Pvar[ Last_date, s_tech] \
+                   + model.storageIn_Dvar[t, res, s_tech] * model.storageFactorIn[res, s_tech] \
+                   - model.storageOut_Dvar[t, res, s_tech] * model.storageFactorOut[res, s_tech]
+    model.StockLevelCtr = Constraint( model.Date, model.STOCK_TECHNO, rule=StockLevel_rule)
 
     def StockCapacity_rule(model, t, s_tech, ):  # INEQ forall t
         return model.stockLevel_Pvar[t, s_tech] <= model.Cmax_Dvar[ s_tech]
-    model.StockCapacityCtr = Constraint( model.TIMESTAMP, model.STOCK_TECHNO, rule=StockCapacity_rule)
-
+    model.StockCapacityCtr = Constraint( model.Date, model.STOCK_TECHNO, rule=StockCapacity_rule)
 
     if "minCapacity" in TechParameters:
         def maxCapacity_rule(model, tech):  # INEQ forall t, tech
@@ -433,35 +432,43 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     if "RampConstraintPlus" in TechParameters:
         def rampCtrPlus_rule(model, t, tech):  # INEQ forall t<
             if model.RampConstraintPlus[ tech] > 0:
-                return model.power_Dvar[t + 1, tech] - model.power_Dvar[t, tech] <= model.capacity_Dvar[ tech] * model.RampConstraintPlus[ tech]
+                t_plus_1 = t + timedelta(hours=1)
+                return model.power_Dvar[t_plus_1, tech] - model.power_Dvar[t, tech] <= model.capacity_Dvar[ tech] * model.RampConstraintPlus[ tech]
             else:
                 return Constraint.Skip
-        model.rampCtrPlus = Constraint(model.TIMESTAMP_MinusOne, model.TECHNOLOGIES,rule=rampCtrPlus_rule)
+        model.rampCtrPlus = Constraint(model.Date_MinusOne, model.TECHNOLOGIES,rule=rampCtrPlus_rule)
 
     if "RampConstraintMoins" in TechParameters:
         def rampCtrMoins_rule(model,t, tech):  # INEQ forall t<
             if model.RampConstraintMoins[ tech] > 0:
-                return model.power_Dvar[t + 1, tech] - model.power_Dvar[t, tech] >= - model.capacity_Dvar[ tech] * model.RampConstraintMoins[ tech]
+                t_plus_1 = t + timedelta(hours=1)
+                return model.power_Dvar[t_plus_1, tech] - model.power_Dvar[t, tech] >= - model.capacity_Dvar[ tech] * model.RampConstraintMoins[ tech]
             else:
                 return Constraint.Skip
-        model.rampCtrMoins = Constraint(model.TIMESTAMP_MinusOne, model.TECHNOLOGIES,rule=rampCtrMoins_rule)
+        model.rampCtrMoins = Constraint(model.Date_MinusOne, model.TECHNOLOGIES,rule=rampCtrMoins_rule)
 
     if "RampConstraintPlus2" in TechParameters:
         def rampCtrPlus2_rule(model, t, tech):  # INEQ forall t<
             if model.RampConstraintPlus2[tech] > 0:
-                var = (model.power_Dvar[ t + 2, tech] + model.power_Dvar[ t + 3, tech]) / 2 - (model.power_Dvar[ t + 1, tech] + model.power_Dvar[ t, tech]) / 2
+                t_plus_2 = t + timedelta(hours=2)
+                t_plus_3 = t + timedelta(hours=3)
+                t_plus_1 = t + timedelta(hours=1)
+                var = (model.power_Dvar[ t_plus_2, tech] + model.power_Dvar[t_plus_3, tech]) / 2 - (model.power_Dvar[ t_plus_1, tech] + model.power_Dvar[ t, tech]) / 2
                 return var <= model.capacity_Dvar[ tech] * model.RampConstraintPlus[tech]
             else:
                 return Constraint.Skip
-        model.rampCtrPlus2 = Constraint(model.TIMESTAMP_MinusThree, model.TECHNOLOGIES,rule=rampCtrPlus2_rule)
+        model.rampCtrPlus2 = Constraint(model.Date_MinusThree, model.TECHNOLOGIES,rule=rampCtrPlus2_rule)
 
     if "RampConstraintMoins2" in TechParameters:
         def rampCtrMoins2_rule(model, t, tech):  # INEQ forall t<
             if model.RampConstraintMoins2[ tech] > 0:
-                var = (model.power_Dvar[ t + 2, tech] + model.power_Dvar[ t + 3, tech]) / 2 - (model.power_Dvar[t + 1, tech] + model.power_Dvar[ t, tech]) / 2
+                t_plus_2 = t + timedelta(hours=2)
+                t_plus_3 = t + timedelta(hours=3)
+                t_plus_1 = t + timedelta(hours=1)
+                var = (model.power_Dvar[t_plus_2, tech] + model.power_Dvar[t_plus_3, tech]) / 2 - (model.power_Dvar[t_plus_1, tech] + model.power_Dvar[ t, tech]) / 2
                 return var >= - model.capacity_Dvar[ tech] * model.RampConstraintMoins2[tech]
             else:
                 return Constraint.Skip
-        model.rampCtrMoins2 = Constraint(model.TIMESTAMP_MinusThree, model.TECHNOLOGIES,rule=rampCtrMoins2_rule)
+        model.rampCtrMoins2 = Constraint(model.Date_MinusThree, model.TECHNOLOGIES,rule=rampCtrMoins2_rule)
 
     return model

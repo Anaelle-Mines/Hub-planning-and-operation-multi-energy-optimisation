@@ -7,7 +7,6 @@ import pandas as pd
 import mosek
 from Functions.f_optimization import *
 
-
 def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,capaCosts, carbonContent,conversionFactor,carbonTax,isAbstract=False):
     """
     This function creates the pyomo model and initlize the Parameters and (pyomo) Set values
@@ -17,7 +16,6 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     :return: pyomo model
     """
     #TechParameters = inputDict['techParameters']
-    #ResParameters=inputDict['resParameters']
     #carbonTax=inputDict['carbonTax']
     #conversionFactor=inputDict['conversionFactor']
 
@@ -108,14 +106,19 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
 
     # TotalCosts definition Constraints
     def TotalCostsDef_rule(model,y,tech):
-        return sum(sum(model.elecProd[y,t,tech]*(-model.conversionFactor[res,tech]*model.importCosts[y,t,res]) for res in ['uranium','gaz','hydrogen',]) + model.elecProd[y,t,tech]*model.varCosts[y-dy,tech]+ model.elecProd[y,t,tech]*model.carbonContent[y,t]*model.carbon_taxe[y] for t in model.TIMESTAMP) + model.capaCosts[y,tech] == model.TotalCosts[y,tech]
+        if tech in ['IntercoOut','IntercoIn'] :
+            return model.TotalCosts[y,tech] == 0
+        else :
+            return sum(sum(model.elecProd[y,t,tech]*(-model.conversionFactor[res,tech]*model.importCosts[y,t,res]) for res in ['uranium','gaz','hydrogen',]) + model.elecProd[y,t,tech]*model.varCosts[y-dy,tech]+ model.elecProd[y,t,tech]*model.carbonContent[y,t]*model.carbon_taxe[y] for t in model.TIMESTAMP) + model.capaCosts[y,tech] == model.TotalCosts[y,tech]
     model.TotalCostsCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=TotalCostsDef_rule)
 
     def AjustDef_rule(model,y,tech):
-        if tech in ['Interco','curtailment']:
+        if tech in ['IntercoOut','IntercoIn','curtailment']:
+            return model.AjustFac[y, tech] == 0
+        elif tech in 'Coal_p':
             return Constraint.Skip
         elif sum(model.elecProd[y,t,tech] for t in TIMESTAMP) == 0:
-            return Constraint.Skip
+            return model.AjustFac[y,tech]==0
         else :
             return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
     model.AjustCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=AjustDef_rule)
@@ -133,14 +136,12 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
             return sum((-model.conversionFactor[res, 'OldNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'OldNuke'] + model.AjustFac[y,'OldNuke'] <= sum((-model.conversionFactor[res, 'CCG']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'CCG'] + model.AjustFac[y,'CCG']
         if tech == 'CCG' :
             return sum((-model.conversionFactor[res, 'CCG']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'CCG'] + model.AjustFac[y,'CCG'] <= sum((-model.conversionFactor[res, 'TAC']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'TAC'] + model.AjustFac[y,'TAC']
-        if tech == 'TAC':
-            return sum((-model.conversionFactor[res, 'TAC']) * model.importCosts[y, 1, res] for res in ['uranium', 'gaz', 'hydrogen', ]) + model.varCosts[y - dy, 'TAC'] + model.AjustFac[y, 'TAC'] <= model.varCosts[y - dy, 'Coal_p'] + model.AjustFac[y, 'Coal_p']
         else :
             return Constraint.Skip
     model.meritCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=meritDef_rule)
 
     def Lim_rule(model,y,tech):
-        return model.AjustFac[y,tech] <= 300000
+        return model.AjustFac[y,tech] <= 80
     model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
 
     return model

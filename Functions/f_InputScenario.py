@@ -301,9 +301,14 @@ def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
 
     inputDict = loadScenario(scenario, False)
 
+
     elecProd = pd.read_csv(outputFolder+'/power_Dvar.csv').drop(columns='Unnamed: 0').set_index(['YEAR_op','TIMESTAMP', 'TECHNOLOGIES'])
     carbon_content = pd.read_csv(outputFolder+'/carbon.csv')
     elec_price = pd.read_csv(outputFolder+'/elecPrice.csv')
+
+    YEAR = sorted(list(elecProd.index.get_level_values('YEAR_op').unique()))
+    dy=YEAR[1]-YEAR[0]
+    y0=YEAR[0]-dy
 
     marketPrice = elec_price.set_index(['YEAR_op','TIMESTAMP'])
     marketPrice['LastCalled'] = ""
@@ -333,7 +338,7 @@ def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
     ResParameters = inputDict['resParameters'].loc[(slice(None), slice(None), ['electricity', 'gaz', 'hydrogen', 'uranium'])].reset_index().rename(columns={'YEAR':'YEAR_op'}).set_index(['YEAR_op','TIMESTAMP','RESOURCES'])
     gazPrice = (pd.DataFrame(pd.read_csv(outputFolder+'/importCosts_Pvar.csv').drop(columns='Unnamed: 0').set_index(['YEAR_op', 'RESOURCES']).loc[(slice(None), ['gazBio', 'gazNat']), 'importCosts_Pvar']).fillna(0).groupby('YEAR_op').sum()).join(pd.DataFrame(pd.read_csv(outputFolder+'/importation_Dvar.csv').groupby(['YEAR_op', 'RESOURCES']).sum().drop(columns=['Unnamed: 0','TIMESTAMP']).loc[(slice(None), ['gazBio', 'gazNat']), 'importation_Dvar']).fillna(0).groupby('YEAR_op').sum())
     gazPrice['gazPrice'] = (gazPrice['importCosts_Pvar'] / gazPrice['importation_Dvar']).fillna(0)
-    for yr in [2020, 2030, 2040,2050]: ResParameters.loc[(yr, slice(None), ['gaz']), 'importCost'] = gazPrice.loc[yr]['gazPrice']
+    for yr in YEAR: ResParameters.loc[(yr, slice(None), ['gaz']), 'importCost'] = gazPrice.loc[yr]['gazPrice']
 
     model = GetElectricPriceModel(elecProd, marketPrice, ResParameters, inputDict['techParameters'], capaCosts, carbonContent,inputDict['conversionFactor'],inputDict['carbonTax'], isAbstract=False)
     opt = SolverFactory(solver)
@@ -360,15 +365,17 @@ def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
     RES = list(ResParameters.index.get_level_values('RESOURCES').unique())
     RES.remove('hydrogen')
     RES.remove('electricity')
-    YEAR = sorted(list(elecProd.index.get_level_values('YEAR_op').unique()))
-    dy=YEAR[1] - YEAR[0]
     elecProd['Revenus'] = elecProd['power_Dvar'] * marketPrice[test]
     Revenus = elecProd.Revenus.groupby(['YEAR_op', 'TECHNOLOGIES']).sum()
     TotalCosts = elecProd.groupby(['YEAR_op', 'TECHNOLOGIES']).sum().drop(columns=['power_Dvar', 'Revenus'])
 
     for tech in TECHNO:
-        df = pd.DataFrame({'YEAR_op': [2020] * 8760 + [2030] * 8760 + [2040] * 8760 + [2050]*8760,
-                           'TIMESTAMP': TIMESTAMP + TIMESTAMP + TIMESTAMP + TIMESTAMP}).set_index(['YEAR_op', 'TIMESTAMP'])
+        id_year=[]
+        id_time=[]
+        for i in np.arange(len(YEAR)):
+            id_year=id_year+[YEAR[i]]*8760
+            id_time=id_time+TIMESTAMP
+        df = pd.DataFrame({'YEAR_op': id_year,'TIMESTAMP': id_time}).set_index(['YEAR_op', 'TIMESTAMP'])
         for res in RES:
             df[res] = elecProd['power_Dvar'].loc[(slice(None), slice(None), tech)] * ResParameters['importCost'].loc[
                 (slice(None), slice(None), res)] * (-inputDict['conversionFactor']['conversionFactor'].loc[(res, tech)])
@@ -383,7 +390,6 @@ def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
     TotalCosts['capacity'] = capaCosts['capacityCosts_Pvar']
     TotalCosts['total'] = TotalCosts['import'] + TotalCosts['variable'] + TotalCosts['carbon'] + TotalCosts['capacity']
     Difference = TotalCosts['total'] - Revenus
-
     delta = Difference.loc[(Difference != 0)]
     MW = elecProd.groupby(['YEAR_op', 'TECHNOLOGIES']).sum()['power_Dvar']
     MW = MW.loc[(MW != 0)]
@@ -393,47 +399,13 @@ def ElecPrice_optim(scenario,solver='mosek',outputFolder = 'Data/output/'):
 
     marketPrice.loc[marketPrice['NewPrice'] < 0] = 0
 
-    for yr in [2, 3, 4]:
-        marketPrice.loc[(yr, slice(None)),'OldPrice_NonAct'] = marketPrice.loc[(yr, slice(None)),'energyCtr'] / ((1 + Economics.loc['discountRate']['value']) ** (-10*(yr-1)))
-        marketPrice.loc[(yr,slice(None)),'NewPrice_NonAct']=marketPrice.loc[(yr,slice(None)),'NewPrice']/ ((1 + Economics.loc['discountRate']['value']) ** (-10*(yr-1)))
+    for yr in YEAR :
+        marketPrice.loc[(yr, slice(None)),'OldPrice_NonAct'] = marketPrice.loc[(yr, slice(None)),'energyCtr'] / ((1 + scenario['economicParameters']['discountRate'].loc[0]) ** (-(yr-y0)))
+        marketPrice.loc[(yr,slice(None)),'NewPrice_NonAct']=marketPrice.loc[(yr,slice(None)),'NewPrice']/ ((1 + scenario['economicParameters']['discountRate'].loc[0]) ** (-(yr-y0)))
 
-    marketPrice = round(marketPrice.reset_index().set_index('YEAR_op').rename(index=dic_an).set_index('TIMESTAMP', append=True), 2)
+    marketPrice = round(marketPrice.reset_index().set_index(['YEAR_op','TIMESTAMP']),2)
 
-    os.chdir(OutputFolder)
-    os.chdir(SimulName)
-    AjustFac.to_csv('priceCorrection.csv')
-    marketPrice.to_csv('marketPrice.csv')
-    os.chdir('..')
-    os.chdir('..')
-    os.chdir('..')
+    AjustFac.to_csv(outputFolder+'/priceCorrection.csv')
+    marketPrice.to_csv(outputFolder+'/marketPrice.csv')
 
     return marketPrice
-
-def create_data_PACA(Scenario,ScenarioName,marketPrice,Carbon_content, Param_list, Scenario_list,ElecMix,InputFolder = 'Data/Input/') :
-
-    ImportFolder = 'Data/Input_reference_v3/'
-    areaConsumption, areaConsumptionSMR, availabilityFactorFr, availabilityFactorPACA, Calendrier, Convfac, sConvfac, Economics, Stechno_ref, techno_ref, Res_ref, marketPrice_ref, carbon_ref = loading_reference(ImportFolder)
-    # Creation of data
-
-    techno, Stechno = modif_CAPEX(Scenario, techno_ref, Stechno_ref, Param_list, Scenario_list)
-    technoFr, technoSMR, StechnoFr, StechnoSMR = capacity_Lim(Scenario, techno, Stechno, ElecMix, Param_list,Scenario_list)
-
-    # Export csv Scenario PACA
-    Zones = "PACA";
-    year = '2020-2050';
-    InputName = 'Input_' + ScenarioName
-    os.chdir(InputFolder)
-    os.chdir(InputName)
-
-    ResSMR = Res_Price(Scenario, Res_ref, marketPrice, Carbon_content, Param_list, Scenario_list, type='SMR')
-
-    areaConsumptionSMR.to_csv('areaConsumption' + year + '_' + Zones + '_SMR_TIMExRESxYEAR.csv', index=True)
-    availabilityFactorPACA.to_csv('availabilityFactor' + year + '_' + Zones + '_TIMExTECHxYEAR.csv', index=True)
-    ResSMR.to_csv('set' + year + '_horaire_TIMExRESxYEAR.csv', index=True)
-    technoSMR.to_csv('set' + year + '_' + Zones + '_SMR_TECHxYEAR.csv', index=True)
-    StechnoSMR.to_csv('set' + year + '_' + Zones + '_SMR_STECHxYEAR.csv', index=True)
-    os.chdir('..')
-    os.chdir('..')
-    os.chdir('..')
-
-    return

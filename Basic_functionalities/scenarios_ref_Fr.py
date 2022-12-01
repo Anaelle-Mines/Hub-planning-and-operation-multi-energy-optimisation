@@ -216,7 +216,7 @@ for k, year in enumerate(yearList[:-1]):
          )
     )
 
-    tech = "Interco"
+    tech = "IntercoIn"
     max_install_capacity = [100000,100000,100000,100000]
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [11000,22300,29700,39400]
@@ -228,6 +228,24 @@ for k, year in enumerate(yearList[:-1]):
                 'lifeSpan': lifespan, 'powerCost': 150, 'investCost': capex, 'operationCost': opex,
                 'minInstallCapacity': min_install_capacity[k],'maxInstallCapacity': max_install_capacity[k],
                 'EmissionCO2': 290, 'Conversion': {'electricity': 1},
+                'EnergyNbhourCap': 0, # used for hydroelectricity
+                'minCumulCapacity': min_cumul_capacity[k],'maxCumulCapacity': max_cumul_capacity[k] }
+            }
+         )
+    )
+
+    tech = "IntercoOut"
+    max_install_capacity = [100000,100000,100000,100000]
+    min_install_capacity=[0,0,0,0]
+    max_cumul_capacity= [11000,22300,29700,39400]
+    min_cumul_capacity =[11000,22300,29700,39400]
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    scenarioFr['conversionTechs'].append(
+        pd.DataFrame(data={tech:
+                { 'YEAR': year, 'Category': 'Electricity production',
+                'lifeSpan': lifespan, 'powerCost': -150, 'investCost': capex, 'operationCost': opex,
+                'minInstallCapacity': min_install_capacity[k],'maxInstallCapacity': max_install_capacity[k],
+                'EmissionCO2': 290, 'Conversion': {'electricity': -1},
                 'EnergyNbhourCap': 0, # used for hydroelectricity
                 'minCumulCapacity': min_cumul_capacity[k],'maxCumulCapacity': max_cumul_capacity[k] }
             }
@@ -357,7 +375,7 @@ scenarioFr['resourceImportCO2eq'] = pd.concat(
     )
 )
 
-scenarioFr['convTechList'] = ["WindOnShore", "WindOffShore", "Solar", "CCG", "TAC","Coal_p", "OldNuke","NewNuke","Interco","curtailment","HydroReservoir","HydroRiver"]
+scenarioFr['convTechList'] = ["WindOnShore", "WindOffShore", "Solar", "CCG", "TAC","Coal_p", "OldNuke","NewNuke","IntercoIn","IntercoOut","curtailment","HydroReservoir","HydroRiver"]
 ctechs = scenarioFr['convTechList']
 availabilityFactor = pd.read_csv(inputPath+'availabilityFactor2010-2050_Fr_TIMExTECHxYEAR.csv',
                                  sep=',', decimal='.', skiprows=0).set_index(["YEAR", "TIMESTAMP", "TECHNOLOGIES"])
