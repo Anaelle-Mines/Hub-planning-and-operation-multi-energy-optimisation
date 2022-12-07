@@ -21,5 +21,4 @@ EnR,Fossils=plot_mixProdElec(outputFolderFr)
 timeRange=range(1,1+24*7)
 plot_hourlyProduction(2040,timeRange,outputFolderFr)
 
-
 plot_monotone(outputFolderFr)

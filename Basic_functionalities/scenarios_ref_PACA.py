@@ -168,7 +168,7 @@ for k, year in enumerate(yearList[:-1]):
     )
 
     tech = "SMR_elec"
-    max_cumul_capacity= [0,10000,10000,10000]
+    max_cumul_capacity= [0,0,0,0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
@@ -182,7 +182,7 @@ for k, year in enumerate(yearList[:-1]):
     )
 
     tech = "SMR_elecCCS1"
-    max_cumul_capacity= [0,10000,10000,10000]
+    max_cumul_capacity= [0,0,0,0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
@@ -287,6 +287,28 @@ for k, year in enumerate(yearList[:-1]):
          )
     )
 
+    tech = "saltCavernH2_G"
+    max_install_capacity = [0,0,0,0]
+    max_install_power=[0,0,0,0]
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    scenarioPACA['storageTechs'].append(
+        pd.DataFrame(data={tech:
+                { 'YEAR': year,
+               'resource': 'electricity',
+               'storagelifeSpan': lifespan,
+                'storagePowerCost': 1000,
+                'storageEnergyCost': capex,
+                'storageOperationCost': opex,
+                'p_max': max_install_power[k],
+                'c_max': max_install_capacity[k],
+                'chargeFactors': {'electricity': 0.0168,'hydrogen':1},
+                'dischargeFactors': {'hydrogen': 1},
+                'dissipation': 0,
+                },
+            }
+         )
+    )
+
 scenarioPACA['storageTechs'] =  pd.concat(scenarioPACA['storageTechs'], axis=1)
 
 scenarioPACA['carbonTax'] = pd.DataFrame(data=np.linspace(0.0675,0.165, nYears),
@@ -341,9 +363,9 @@ scenarioPACA['resourceImportCO2eq'] = pd.concat(
     )
 )
 
-scenarioPACA['convTechList'] = ["WindOnShore", "WindOffShore-flot", "Solar", 'SMR','SMR + CCS1','SMR + CCS2','SMR_elec','SMR_elecCCS1','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL' ,"curtailment"]
+scenarioPACA['convTechList'] = ["WindOnShore", "WindOffShore_flot", "Solar", 'SMR','SMR + CCS1','SMR + CCS2','SMR_elec','SMR_elecCCS1','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL' ,"curtailment"]
 ctechs = scenarioPACA['convTechList']
-availabilityFactor = pd.read_csv(inputPath+'availabilityFactor2010-2050_Fr_TIMExTECHxYEAR.csv',
+availabilityFactor = pd.read_csv(inputPath+'availabilityFactor2010-2050_PACA_TIMExTECHxYEAR.csv',
                                  sep=',', decimal='.', skiprows=0).set_index(["YEAR", "TIMESTAMP", "TECHNOLOGIES"])
 itechs = availabilityFactor.index.isin(ctechs, level=2)
 scenarioPACA['availability'] = availabilityFactor.loc[(slice(None), slice(None), itechs)]

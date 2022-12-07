@@ -561,7 +561,17 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     # storageCosts definition Constraint
     def storageCostsDef_rule(model, y, s_tech):  # EQ forall s_tech in STOCK_TECHNO
-        return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
+        if s_tech=='saltCavernH2_G':
+            return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
+                    model.storagePowerCost[yi, s_tech] * model.Pmax_Pvar[yi + dy, s_tech] + 24750000) * f1(i,
+                                                                                                model.storagelifeSpan[
+                                                                                                    yi, s_tech]) * f3(r,
+                                                                                                                      y - dy)
+                   for yi in yearList[yearList < y]) \
+               + model.storageOperationCost[y - dy, s_tech] * f3(r, y) * model.Pmax_Pvar[y, s_tech] == \
+               model.storageCosts_Pvar[y, s_tech]
+        else:
+            return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
                     model.storagePowerCost[yi, s_tech] * model.Pmax_Pvar[yi + dy, s_tech]) * f1(i,
                                                                                                 model.storagelifeSpan[
                                                                                                     yi, s_tech]) * f3(r,
