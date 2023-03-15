@@ -4,7 +4,7 @@ import pandas as pd
 from Basic_functionalities import tech_eco_data
 
 inputPath='Data/Raw_Ana/'
-outputFolderFr='Data/output/Ref_Fr'
+outputFolderFr='Data/output/Ref_wH2_Fr'
 
 nHours = 8760
 t = np.arange(1,nHours + 1)
@@ -18,18 +18,21 @@ nYears = len(yearList)
 
 scenarioPACA = {}
 
+#hourlyDemand_H2=[360,390,460,755]
 scenarioPACA['resourceDemand'] =  pd.concat(
     (
         pd.DataFrame(data = { 
               'YEAR': year, 
               'TIMESTAMP': t, # We add the TIMESTAMP so that it can be used as an index later. 
-              'electricity': np.zeros(nHours), # incrising demand of electricity (hypothesis : ADEME)
-              'hydrogen': 360 * (1 + .025) ** (k * yearStep) ,
+              'electricity': np.zeros(nHours), # Only considering H2 final demand
+              'hydrogen': 360 * (1 + 0.025) ** (k * yearStep) ,
+              # 'hydrogen':hourlyDemand_H2[k]*np.ones(nHours) ,
               'gaz': np.zeros(nHours),
              } 
         ) for k, year in enumerate(yearList[1:])
     ) 
-) 
+)
+
 
 scenarioPACA['conversionTechs'] = []
 for k, year in enumerate(yearList[:-1]):
@@ -49,7 +52,11 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "WindOffShore_flot"
     max_install_capacity = [0,500,500,500]
+    # max_install_capacity = [0, 10000, 10000, 10000]
+    # max_install_capacity = [round(i * 2, 0) for i in max_install_capacity]
     max_cumul_capacity= [0,500,750,1000]
+    # max_cumul_capacity = [0, 10000, 10000, 10000]
+    # max_cumul_capacity = [round(i * 2, 0) for i in max_cumul_capacity]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
@@ -64,7 +71,11 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "WindOnShore"
     max_install_capacity = [0,100,100,100]
+    # max_install_capacity = [0, 10000, 10000, 10000]
+    # max_install_capacity = [round(i * 2, 0) for i in max_install_capacity]
     max_cumul_capacity= [0, 150 , 150, 150]
+    # max_cumul_capacity = [0, 10000, 10000, 10000]
+    # max_cumul_capacity = [round(i * 2, 0) for i in max_cumul_capacity]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year) 
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech: 
@@ -79,7 +90,11 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "Solar"
     max_install_capacity = [0,100,100,100]
+    # max_install_capacity = [0, 10000, 10000, 10000]
+    # max_install_capacity = [round(i*2,0) for i in max_install_capacity]
     max_cumul_capacity=[0,150,150,150]
+    # max_cumul_capacity = [0, 10000, 10000, 10000]
+    # max_cumul_capacity = [round(i * 2, 0) for i in max_cumul_capacity]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year) 
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
@@ -96,14 +111,16 @@ for k, year in enumerate(yearList[:-1]):
     max_install_capacity = [360,1000,1000,1000]
     min_install_capacity=[360,0,0,0]
     max_cumul_capacity= [360,10000,10000,10000]
+    # max_cumul_capacity = [360, 10000, 0, 0]
+    # max_cumul_capacity = [360, 10000, 10000, 0]
     min_cumul_capacity =[360,0,0,0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
-                { 'YEAR': year, 'Category': 'Electricity production',
-                'lifeSpan': lifespan, 'powerCost': 0, 'investCost': capex, 'operationCost': opex,
+                { 'YEAR': year, 'Category': 'Hydrogen production',
+                'lifeSpan': lifespan, 'powerCost': 0.21, 'investCost': capex, 'operationCost': opex,
                 'minInstallCapacity': min_install_capacity[k],'maxInstallCapacity': max_install_capacity[k],
-                'EmissionCO2': 0, 'Conversion': {'hydrogen':1,'gaz':-1.43 },
+                'EmissionCO2': 0, 'Conversion': {'hydrogen':1,'gaz':-1.28},
                 'EnergyNbhourCap': 0, # used for hydroelectricity
                 'minCumulCapacity': min_cumul_capacity[k],'maxCumulCapacity': max_cumul_capacity[k] ,'RampConstraintPlus':0.3}
             }
@@ -112,13 +129,15 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "SMR + CCS1"
     max_cumul_capacity= [0,10000,10000,10000]
+    # max_cumul_capacity = [0, 10000, 0, 0]
+    # max_cumul_capacity = [0, 10000, 10000, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
-                'lifeSpan': lifespan, 'powerCost': 0, 'investCost': capex, 'operationCost': opex,
+                'lifeSpan': lifespan, 'powerCost':7.71, 'investCost': capex, 'operationCost': opex,
                 'minInstallCapacity': 0,'maxInstallCapacity': 100000,
-                'EmissionCO2': -169, 'Conversion': {'hydrogen': 1,'gaz':-1.43,'electricity':-0.17},
+                'EmissionCO2': -150, 'Conversion': {'hydrogen': 1,'gaz':-1.32},
                 'EnergyNbhourCap': 0, # used for hydroelectricity
                 'minCumulCapacity': 0,'maxCumulCapacity': max_cumul_capacity[k],'RampConstraintPlus':0.3}
             }
@@ -127,13 +146,15 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "SMR + CCS2"
     max_cumul_capacity= [0,10000,10000,10000]
+    # max_cumul_capacity = [0, 10000, 0, 0]
+    # max_cumul_capacity = [0, 10000, 10000, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
-                'lifeSpan': lifespan, 'powerCost': 0, 'investCost': capex, 'operationCost': opex,
+                'lifeSpan': lifespan, 'powerCost': 13.7, 'investCost': capex, 'operationCost': opex,
                 'minInstallCapacity': 0,'maxInstallCapacity': 100000,
-                'EmissionCO2': -268, 'Conversion': {'hydrogen': 1,'gaz':-1.43,'electricity':-0.34},
+                'EmissionCO2': -270, 'Conversion': {'hydrogen': 1,'gaz':-1.45},
                 'minCumulCapacity': 0,'maxCumulCapacity': max_cumul_capacity[k],'RampConstraintPlus':0.3}
             }
          )
@@ -174,7 +195,7 @@ for k, year in enumerate(yearList[:-1]):
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
                 'lifeSpan': lifespan, 'powerCost': 0, 'investCost': capex, 'operationCost': opex,
-                'minInstallCapacity': 0,'maxInstallCapacity': 100000,
+                'minInstallCapacity': 0,'maxInstallCapacity': 0,
                 'EmissionCO2': 0, 'Conversion': {'hydrogen': 1,'gaz':-0.91,'electricity':-0.4},
                 'minCumulCapacity': 0,'maxCumulCapacity': max_cumul_capacity[k],'RampConstraintPlus':0.3}
             }
@@ -188,7 +209,7 @@ for k, year in enumerate(yearList[:-1]):
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
                 'lifeSpan': lifespan, 'powerCost': 0, 'investCost': capex, 'operationCost': opex,
-                'minInstallCapacity': 0,'maxInstallCapacity': 100000,
+                'minInstallCapacity': 0,'maxInstallCapacity': 0,
                 'EmissionCO2': -156, 'Conversion': {'hydrogen': 1,'gaz':-0.91,'electricity':-0.57},
                 'minCumulCapacity': 0,'maxCumulCapacity': max_cumul_capacity[k],'RampConstraintPlus':0.3}
             }
@@ -267,12 +288,14 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "tankH2_G"
     max_install_capacity = [0,10000,20000,30000]
+    # max_install_capacity = [0,0,0,0]
     max_install_power=[0,1000,2000,3000]
+    # max_install_power = [0, 0, 0, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['storageTechs'].append(
         pd.DataFrame(data={tech: 
                 { 'YEAR': year, 
-               'resource': 'electricity',
+               'resource': 'hydrogen',
                'storagelifeSpan': lifespan,
                 'storagePowerCost': capex*0.6,
                 'storageEnergyCost': capex*0.4,
@@ -288,13 +311,15 @@ for k, year in enumerate(yearList[:-1]):
     )
 
     tech = "saltCavernH2_G"
-    max_install_capacity = [0,0,0,0]
-    max_install_power=[0,0,0,0]
+    # max_install_capacity = [0,130000,130000,130000]
+    max_install_capacity = [0, 0, 0, 0]
+    # max_install_power=[0,13000,13000,13000]
+    max_install_power = [0, 0, 0, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
     scenarioPACA['storageTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year,
-               'resource': 'electricity',
+               'resource': 'hydrogen',
                'storagelifeSpan': lifespan,
                 'storagePowerCost': 1000,
                 'storageEnergyCost': capex,
@@ -317,10 +342,34 @@ scenarioPACA['carbonTax'] = pd.DataFrame(data=np.linspace(0.0675,0.165, nYears),
 scenarioPACA['carbonGoals'] = pd.DataFrame(data=np.linspace(974e6, 205e6, nYears),
     index=yearList, columns=('carbonGoals',))
 
-scenarioPACA['maxBiogasCap'] = pd.DataFrame(data=np.linspace(0, 310e6, nYears),
-    index=yearList, columns=('maxBiogasCap',))
+impBiogasCap=np.linspace(0, 5e6, nYears)
+# impH2Cap=np.linspace(0, 30e6, nYears)
+scenarioPACA['maxImportCap'] = pd.concat(
+    (
+        pd.DataFrame(index=[year],data={
+            'electricity': 10e10,
+            'gazNat': 10e10,
+            'gazBio': impBiogasCap[k+1],
+            'hydrogen': 0,
+            'gaz': 0
+        }) for k, year in enumerate(yearList[1:])
+    )
+)
 
-scenarioPACA['gridConnection'] = pd.read_csv(inputPath+'CalendrierHPHC_TIME.csv', sep=',', decimal='.', skiprows=0,
+# expH2Cap=np.linspace(0, 30e6, nYears)
+scenarioPACA['maxExportCap'] = pd.concat(
+    (
+        pd.DataFrame(index=[year],data={
+            'electricity': 0,#10e6,
+            'gazNat': 0,
+            'gazBio': 0,
+            'hydrogen': 0,
+            'gaz': 0
+        }) for k, year in enumerate(yearList[1:])
+    )
+)
+
+scenarioPACA['gridConnection'] = pd.read_csv(inputPath+'CalendrierHTB_TIME.csv', sep=',', decimal='.', skiprows=0,
                                 comment="#").set_index(["TIMESTAMP"])
 
 scenarioPACA['economicParameters'] = pd.DataFrame({
@@ -335,14 +384,16 @@ df_elecPrice=pd.read_csv(outputFolderFr+'/marketPrice.csv').set_index(['YEAR_op'
 df_elecCarbon=pd.read_csv(outputFolderFr+'/carbon.csv').set_index(['YEAR_op','TIMESTAMP'])
 
 gasPriceFactor=[1,2,2,2]
+# bioGasPrice=[140,140,120,100]
+bioGasPrice=[120,120,100,80]
 scenarioPACA['resourceImportPrices'] = pd.concat(
     (
         pd.DataFrame(data={
             'YEAR': year, 
             'TIMESTAMP': t, 
-            'electricity': df_elecPrice.loc[(year, slice(None)),'NewPrice_NonAct'].values,
+            'electricity': df_elecPrice.loc[(year, slice(None)),'OldPrice_NonAct'].values,
             'gazNat': df_res_ref.loc[(year, slice(None), 'gazNat'),'importCost'].values*gasPriceFactor[k],
-            'gazBio': df_res_ref.loc[(year, slice(None), 'gazBio'),'importCost'].values,
+            'gazBio':bioGasPrice[k]*np.ones(nHours),
             'hydrogen': 100000*np.ones(nHours),
             'gaz': 100000*np.ones(nHours)
         }) for k, year in enumerate(yearList[1:])
@@ -363,7 +414,7 @@ scenarioPACA['resourceImportCO2eq'] = pd.concat(
     )
 )
 
-scenarioPACA['convTechList'] = ["WindOnShore", "WindOffShore_flot", "Solar", 'SMR','SMR + CCS1','SMR + CCS2','SMR_elec','SMR_elecCCS1','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL' ,"curtailment"]
+scenarioPACA['convTechList'] = ["WindOnShore", "WindOffShore_flot", "Solar", 'SMR','SMR + CCS1','SMR + CCS2','CCS1','CCS2','electrolysis_PEMEL','electrolysis_AEL' ,"curtailment",'SMR_elec','SMR_elecCCS1']
 ctechs = scenarioPACA['convTechList']
 availabilityFactor = pd.read_csv(inputPath+'availabilityFactor2010-2050_PACA_TIMExTECHxYEAR.csv',
                                  sep=',', decimal='.', skiprows=0).set_index(["YEAR", "TIMESTAMP", "TECHNOLOGIES"])
@@ -372,6 +423,6 @@ scenarioPACA['availability'] = availabilityFactor.loc[(slice(None), slice(None),
 
 scenarioPACA["yearList"] = yearList
 scenarioPACA["transitionFactors"] =pd.DataFrame(
-    {'TECHNO1':['SMR','SMR','SMR_elec','SMR + CCS1'],
-    'TECHNO2':['SMR + CCS1','SMR + CCS2','SMR_elecCCS1','SMR + CCS2'],
+    {'TECHNO1':['SMR','SMR'],
+    'TECHNO2':['SMR + CCS1','SMR + CCS2'],
     'TransFactor': 1}).set_index(['TECHNO1','TECHNO2'])

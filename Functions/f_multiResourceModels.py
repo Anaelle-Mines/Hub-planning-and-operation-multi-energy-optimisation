@@ -1,10 +1,9 @@
 from pyomo.environ import *
 from pyomo.core import *
 import xarray as xr
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from Functions.f_optimization import *
+#from Functions.f_optimization import *
 
 def loadScenario(scenario, printTables=False):
     yearZero = scenario["yearList"][0]
@@ -40,6 +39,14 @@ def loadScenario(scenario, printTables=False):
 
     CarbonTax = scenario['carbonTax'].copy()
     CarbonTax.index.name = 'YEAR'
+
+    maxImportCap=scenario['maxImportCap'].copy()
+    maxImportCap.index.name='YEAR'
+    maxImportCap=maxImportCap.reset_index().melt(id_vars=['YEAR'], var_name=['RESOURCES'],value_name='maxImportCap').set_index(['YEAR', 'RESOURCES'])
+
+    maxExportCap=scenario['maxExportCap'].copy()
+    maxExportCap.index.name='YEAR'
+    maxExportCap=maxExportCap.reset_index().melt(id_vars=['YEAR'], var_name=['RESOURCES'],value_name='maxExportCap').set_index(['YEAR', 'RESOURCES'])
 
     df_conv = scenario['conversionTechs'].transpose().set_index('YEAR', append=True)['Conversion']
     conversionFactor = pd.DataFrame(
@@ -104,10 +111,12 @@ def loadScenario(scenario, printTables=False):
     inputDict["carbonTax"] = CarbonTax
     inputDict["transitionFactors"] = scenario["transitionFactors"]
     inputDict["yearList"] = scenario["yearList"]
+    inputDict["maxImportCap"]=maxImportCap
+    inputDict["maxExportCap"] = maxExportCap
 
     return inputDict
 
-def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
+def systemModel_MultiResource_WithStorage(scenario, zone,isAbstract=False):
     """
     This function creates the pyomo model and initlize the Parameters and (pyomo) Set values
     :param areaConsumption: panda table with consumption
@@ -124,9 +133,9 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     areaConsumption = inputDict["areaConsumption"].loc[(inputDict["yearList"][1:], slice(None), slice(None))]
     availabilityFactor = inputDict["availabilityFactor"].loc[(inputDict["yearList"][1:], slice(None), slice(None))]
-    TechParameters = inputDict["techParameters"]
+    TechParameters = inputDict["techParameters"].loc[(slice(None),inputDict['convTechList']),slice(None)]
     ResParameters = inputDict["resParameters"]
-    conversionFactor = inputDict["conversionFactor"]
+    conversionFactor = inputDict["conversionFactor"].loc[(slice(None),inputDict['convTechList']),slice(None)]
     Economics = inputDict["economics"]
     Calendrier = inputDict["calendar"]
     StorageParameters = inputDict["storageParameters"]
@@ -134,7 +143,9 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     TransFactors = inputDict["transitionFactors"]
     CarbonTax = inputDict["carbonTax"].loc[inputDict["yearList"][1:]]
     carbonGoals = inputDict["carbonGoals"].loc[inputDict["yearList"][1:]]
-    inputDict["maxBiogasCap"] = inputDict["maxBiogasCap"].loc[inputDict["yearList"][1:]]
+    # H2UsageFinal = inputDict["H2UsageFinal"].loc[inputDict["yearList"][1:]]
+    maxImportCap = inputDict["maxImportCap"]
+    maxExportCap = inputDict["maxExportCap"]
 
     isAbstract = False
     availabilityFactor.isna().sum()
@@ -191,6 +202,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     model.RESOURCES_STOCKTECHNO = model.RESOURCES * model.STOCK_TECHNO
     model.YEAR_op_TIMESTAMP_RESOURCES = model.YEAR_op * model.TIMESTAMP * model.RESOURCES
     model.TECHNOLOGIES_TECHNOLOGIES = model.TECHNOLOGIES * model.TECHNOLOGIES
+    model.YEAR_op_RESOURCES = model.YEAR_op * model.RESOURCES
 
     # Subset of Simple only required if ramp constraint
     model.TIMESTAMP_MinusOne = Set(initialize=TIMESTAMP_list[: len(TIMESTAMP) - 1], ordered=False)
@@ -210,10 +222,15 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
                               initialize=carbonGoals.loc[:, 'carbonGoals'].squeeze().to_dict(), domain=NonNegativeReals)
     model.carbon_taxe = Param(model.YEAR_op, default=0, initialize=CarbonTax.loc[:, 'carbonTax'].squeeze().to_dict(),
                               domain=NonNegativeReals)
-    # model.gazBio_max = Param(model.YEAR_op, default=0,initialize={2:103000,3:206000,4:310000}, domain=NonNegativeReals)
-    model.gazBio_max = Param(model.YEAR_op, default=0,
-                             initialize=inputDict["maxBiogasCap"].loc[:, "maxBiogasCap"].squeeze().to_dict(),
+    model.import_max = Param(model.YEAR_op_RESOURCES, default=0,
+                             initialize=maxImportCap.loc[:, "maxImportCap"].squeeze().to_dict(),
                              domain=NonNegativeReals)
+    model.export_max = Param(model.YEAR_op_RESOURCES, default=0,
+                             initialize=maxExportCap.loc[:, "maxExportCap"].squeeze().to_dict(),
+                             domain=NonNegativeReals)
+    # model.H2_final = Param(model.YEAR_op, default=0,
+    #                          initialize=H2UsageFinal.loc[:, "H2UsageFinal"].squeeze().to_dict(),
+    #                          domain=NonNegativeReals)
     model.transFactor = Param(model.TECHNOLOGIES_TECHNOLOGIES, mutable=False, default=0,
                               initialize=TransFactors.loc[:, 'TransFactor'].squeeze().to_dict())
 
@@ -254,8 +271,10 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     # Operation
     model.power_Dvar = Var(model.YEAR_op, model.TIMESTAMP, model.TECHNOLOGIES,
                            domain=NonNegativeReals)  ### Power of a conversion mean at time t
-    model.importation_Dvar = Var(model.YEAR_op, model.TIMESTAMP, model.RESOURCES, domain=NonNegativeReals,
-                                 initialize=0)  ### Improtation of a resource at time t
+    model.importation_Dvar = Var(model.YEAR_op, model.TIMESTAMP, model.RESOURCES,domain=NonNegativeReals,
+                                 initialize=0)  ### Importation of a resource at time t
+    model.exportation_Dvar = Var(model.YEAR_op, model.TIMESTAMP, model.RESOURCES,domain=NonNegativeReals,
+                                 initialize=0)  ### Exportation of a resource at time t
     model.energy_Pvar = Var(model.YEAR_op, model.TIMESTAMP, model.RESOURCES)  ### Amount of a resource at time t
     model.max_PS_Dvar = Var(model.YEAR_op, model.HORAIRE,
                             domain=NonNegativeReals)  ### Puissance souscrite max par plage horaire pour l'année d'opération y
@@ -296,13 +315,12 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
                                 model.TECHNOLOGIES)  ### Marginal cost for a conversion mean, explicitely defined by definition powerCostsDef
     model.capacityCosts_Pvar = Var(model.YEAR_op,
                                    model.TECHNOLOGIES)  ### Fixed costs for a conversion mean, explicitely defined by definition capacityCostsDef
-    model.importCosts_Pvar = Var(model.YEAR_op,
-                                 model.RESOURCES)  ### Cost of ressource imported, explicitely defined by definition importCostsDef
+    model.importCosts_Pvar = Var(model.YEAR_op,model.RESOURCES)  ### Cost of ressource imported, explicitely defined by definition importCostsDef
     model.turpeCosts_Pvar = Var(model.YEAR_op, model.RESOURCES,
                                 domain=NonNegativeReals)  ### Coûts TURPE pour électricité
     model.storageCosts_Pvar = Var(model.YEAR_op,
                                   model.STOCK_TECHNO)  ### Cost of storage for a storage mean, explicitely defined by definition storageCostsDef
-    model.carbonCosts_Pvar = Var(model.YEAR_op, domain=NonNegativeReals)
+    model.carbonCosts_Pvar = Var(model.YEAR_op,domain=NonNegativeReals)
 
     model.dual = Suffix(direction=Suffix.IMPORT)
     model.rc = Suffix(direction=Suffix.IMPORT)
@@ -356,19 +374,21 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     # importCosts definition Constraints
     def importCostsDef_rule(model, y, res):
         return sum(
-            (model.importCost[y, t, res] * f3(r, y) * model.importation_Dvar[y, t, res]) for t in model.TIMESTAMP) == \
+            (model.importCost[y, t, res] * f3(r, y) * (model.importation_Dvar[y, t, res]-model.exportation_Dvar[y,t,res])) for t in model.TIMESTAMP) == \
                model.importCosts_Pvar[y, res]
 
     model.importCostsCtr = Constraint(model.YEAR_op, model.RESOURCES, rule=importCostsDef_rule)
 
-    # gaz definition Constraints
-    def BiogazDef_rule(model, y, res):
-        if res == 'gazBio':
-            return sum(model.importation_Dvar[y, t, res] for t in model.TIMESTAMP) <= model.gazBio_max[y]
-        else:
-            return Constraint.Skip
+    # Max importation/exportation definition Constraints
+    def importMaxDef_rule(model, y, res):
+        return sum(model.importation_Dvar[y, t, res] for t in model.TIMESTAMP) <= model.import_max[y,res]
 
-    model.BiogazCtr = Constraint(model.YEAR_op, model.RESOURCES, rule=BiogazDef_rule)
+    model.importMaxCtr = Constraint(model.YEAR_op, model.RESOURCES, rule=importMaxDef_rule)
+
+    def exportMaxDef_rule(model, y, res):
+        return sum(model.exportation_Dvar[y, t, res] for t in model.TIMESTAMP) <= model.export_max[y,res]
+
+    model.exportMaxCtr = Constraint(model.YEAR_op, model.RESOURCES, rule=exportMaxDef_rule)
 
     # Carbon emission definition Constraints
     def CarbonDef_rule(model, y, t):
@@ -398,15 +418,15 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     def PuissanceSouscrite_rule(model, y, t, res):
         if res == 'electricity':
             if t in TIMESTAMP_P:
-                return model.max_PS_Dvar[y, 'P'] >= model.importation_Dvar[y, t, res]  # en MW
+                return model.max_PS_Dvar[y, 'P'] >= model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]  # en MW
             elif t in TIMESTAMP_HPH:
-                return model.max_PS_Dvar[y, 'HPH'] >= model.importation_Dvar[y, t, res]
+                return model.max_PS_Dvar[y, 'HPH'] >= model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]
             elif t in TIMESTAMP_HCH:
-                return model.max_PS_Dvar[y, 'HCH'] >= model.importation_Dvar[y, t, res]
+                return model.max_PS_Dvar[y, 'HCH'] >= model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]
             elif t in TIMESTAMP_HPE:
-                return model.max_PS_Dvar[y, 'HPE'] >= model.importation_Dvar[y, t, res]
+                return model.max_PS_Dvar[y, 'HPE'] >= model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]
             elif t in TIMESTAMP_HCE:
-                return model.max_PS_Dvar[y, 'HCE'] >= model.importation_Dvar[y, t, res]
+                return model.max_PS_Dvar[y, 'HCE'] >= model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]
         else:
             return Constraint.Skip
 
@@ -416,11 +436,11 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     def TurpeCtr_rule(model, y, res):
         if res == 'electricity':
             return model.turpeCosts_Pvar[y, res] == (
-                        sum(model.HTA[t] * model.importation_Dvar[y, t, res] for t in TIMESTAMP) + model.max_PS_Dvar[
-                    y, 'P'] * 16310 + (model.max_PS_Dvar[y, 'HPH'] - model.max_PS_Dvar[y, 'P']) * 15760 + (
-                                    model.max_PS_Dvar[y, 'HCH'] - model.max_PS_Dvar[y, 'HPH']) * 13290 + (
-                                    model.max_PS_Dvar[y, 'HPE'] - model.max_PS_Dvar[y, 'HCH']) * 8750 + (
-                                    model.max_PS_Dvar[y, 'HCE'] - model.max_PS_Dvar[y, 'HPE']) * 1670) * f3(r, y)
+                        sum(model.HTB[t] * (model.importation_Dvar[y, t, res] + model.exportation_Dvar[y,t,res]) for t in TIMESTAMP) + model.max_PS_Dvar[
+                    y, 'P'] * 58800 + (model.max_PS_Dvar[y, 'HPH'] - model.max_PS_Dvar[y, 'P']) * 56400 + (
+                                    model.max_PS_Dvar[y, 'HCH'] - model.max_PS_Dvar[y, 'HPH']) * 56400 + (
+                                    model.max_PS_Dvar[y, 'HPE'] - model.max_PS_Dvar[y, 'HCH']) * 52800 + (
+                                    model.max_PS_Dvar[y, 'HCE'] - model.max_PS_Dvar[y, 'HPE']) * 49200) * f3(r, y)
         else:
             return model.turpeCosts_Pvar[y, res] == 0
 
@@ -517,7 +537,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
         if res == 'gaz':
             return sum(
                 model.power_Dvar[y, t, tech] * model.conversionFactor[res, tech] for tech in model.TECHNOLOGIES) + sum(
-                model.importation_Dvar[y, t, resource] for resource in gasTypes) + \
+                model.importation_Dvar[y, t, resource] - model.exportation_Dvar[y,t,res] for resource in gasTypes) + \
                    sum(model.storageOut_Pvar[y, t, res, s_tech] - model.storageIn_Pvar[y, t, res, s_tech] -
                        model.storageConsumption_Pvar[y, t, res, s_tech] for s_tech in STOCK_TECHNO) == \
                    model.energy_Pvar[y, t, res]
@@ -526,7 +546,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
         else:
             return sum(
                 model.power_Dvar[y, t, tech] * model.conversionFactor[res, tech] for tech in model.TECHNOLOGIES) + \
-                   model.importation_Dvar[y, t, res] + sum(
+                   model.importation_Dvar[y, t, res] - model.exportation_Dvar[y,t,res] + sum(
                 model.storageOut_Pvar[y, t, res, s_tech] - model.storageIn_Pvar[y, t, res, s_tech] -
                 model.storageConsumption_Pvar[y, t, res, s_tech] for s_tech in STOCK_TECHNO) == model.energy_Pvar[
                        y, t, res]
@@ -534,7 +554,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
     model.ProductionCtr = Constraint(model.YEAR_op, model.TIMESTAMP, model.RESOURCES, rule=Production_rule)
 
     # contrainte d'equilibre offre demande
-    def energyCtr_rule(model, y, t, res):  # INEQ forall t
+    def energyCtr_rule(model, y, t, res):  # INEQ forall
         return model.energy_Pvar[y, t, res] == model.areaConsumption[y, t, res]
 
     model.energyCtr = Constraint(model.YEAR_op, model.TIMESTAMP, model.RESOURCES, rule=energyCtr_rule)
@@ -561,17 +581,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     # storageCosts definition Constraint
     def storageCostsDef_rule(model, y, s_tech):  # EQ forall s_tech in STOCK_TECHNO
-        if s_tech=='saltCavernH2_G':
-            return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
-                    model.storagePowerCost[yi, s_tech] * model.Pmax_Pvar[yi + dy, s_tech] + 24750000) * f1(i,
-                                                                                                model.storagelifeSpan[
-                                                                                                    yi, s_tech]) * f3(r,
-                                                                                                                      y - dy)
-                   for yi in yearList[yearList < y]) \
-               + model.storageOperationCost[y - dy, s_tech] * f3(r, y) * model.Pmax_Pvar[y, s_tech] == \
-               model.storageCosts_Pvar[y, s_tech]
-        else:
-            return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
+        return sum((model.storageEnergyCost[yi, s_tech] * model.Cmax_Pvar[yi + dy, s_tech] +
                     model.storagePowerCost[yi, s_tech] * model.Pmax_Pvar[yi + dy, s_tech]) * f1(i,
                                                                                                 model.storagelifeSpan[
                                                                                                     yi, s_tech]) * f3(r,
@@ -748,7 +758,7 @@ def systemModel_MultiResource_WithStorage(scenario, isAbstract=False):
 
     return model;
 
-def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,capaCosts, carbonContent,conversionFactor,carbonTax,isAbstract=False):
+def GetElectricPriceModel(elecProd,availableCapa, IntercoOut,marketPrice,ResParameters,TechParameters,capaCosts, carbonContent,conversionFactor,carbonTax,isAbstract=False):
     """
     This function creates the pyomo model and initlize the Parameters and (pyomo) Set values
     :param areaConsumption: panda table with consumption
@@ -756,11 +766,10 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     :param isAbstract: boolean true is the model should be abstract. ConcreteModel otherwise
     :return: pyomo model
     """
-    #TechParameters = inputDict['techParameters']
-    #carbonTax=inputDict['carbonTax']
-    #conversionFactor=inputDict['conversionFactor']
-
-    isAbstract=False
+    # TechParameters = inputDict['techParameters']
+    # carbonTax=inputDict['carbonTax']
+    # conversionFactor=inputDict['conversionFactor']
+    #
 
     ### obtaining dimensions values
 
@@ -768,6 +777,8 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     TIMESTAMP = set(marketPrice.index.get_level_values('TIMESTAMP').unique())
     YEAR = set.union(set(TechParameters.index.get_level_values('YEAR').unique()),set(marketPrice.index.get_level_values('YEAR_op').unique()))
     RESOURCES = set(ResParameters.index.get_level_values('RESOURCES').unique())
+
+    export_TECH=list(availableCapa.index.get_level_values('TECHNOLOGIES').unique())
 
     #####################
     #    Pyomo model    #
@@ -800,13 +811,13 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     ###############
 
     model.marketPrice = Param(model.YEAR_TIMESTAMP, default=0,
-                                  initialize=marketPrice.loc[:, "energyCtr"].squeeze().to_dict(), domain=Any)
+                                  initialize=marketPrice.loc[:, "OldPrice_NonAct"].squeeze().to_dict(), domain=Any)
     model.LastCalled = Param(model.YEAR_TIMESTAMP,
                               initialize=marketPrice.loc[:, "LastCalled"].squeeze().to_dict(), domain=Any)
     model.elecProd = Param(model.YEAR_TIMESTAMP_TECHNOLOGIES, default=0,
                                   initialize=elecProd.loc[:, "power_Dvar"].squeeze().to_dict(), domain=Any)
     model.capaCosts = Param(model.YEAR_TECHNOLOGIES, default=0,
-                       initialize=capaCosts.loc[:, "capacityCosts_Pvar"].squeeze().to_dict(), domain=Any)
+                       initialize=capaCosts.loc[:, "capacityCosts_NonAct"].squeeze().to_dict(), domain=Any)
     model.importCosts = Param(model.YEAR_TIMESTAMP_RESOURCES, default=0,
                        initialize=ResParameters.loc[:, "importCost"].squeeze().to_dict(), domain=Any)
     model.carbonContent = Param(model.YEAR_TIMESTAMP, default=0,
@@ -815,14 +826,17 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
                        initialize=TechParameters.loc[:, "powerCost"].squeeze().to_dict(), domain=Any)
     model.carbon_taxe = Param(model.YEAR, default=0,initialize=carbonTax.loc[:,'carbonTax'].squeeze().to_dict(), domain=Any)
     model.conversionFactor = Param(model.RESOURCES,model.TECHNOLOGIES,default=0,initialize=conversionFactor.loc[:,"conversionFactor"].squeeze().to_dict(),domain=Any)
+    model.availableCapa=Param(model.YEAR_TIMESTAMP_TECHNOLOGIES, default=0,
+                                  initialize=availableCapa.loc[:, "availableCapa"].squeeze().to_dict(), domain=Any)
 
     ################
     # Variables    #
     ################
 
-    model.AjustFac = Var(model.YEAR_op, model.TECHNOLOGIES,domain=NonNegativeReals,initialize=0)
-    model.Revenus = Var(model.YEAR_op,model.TECHNOLOGIES,domain=NonNegativeReals)
-    model.TotalCosts = Var(model.YEAR_op,model.TECHNOLOGIES,domain=NonNegativeReals)
+    model.AjustFac = Var(model.YEAR_op, model.TECHNOLOGIES,initialize=0)
+    model.Revenus = Var(model.YEAR_op,model.TECHNOLOGIES)
+    model.OldRevenus = Var(model.YEAR_op,model.TECHNOLOGIES)
+    model.TotalCosts = Var(model.YEAR_op,model.TECHNOLOGIES)
 
     model.dual = Suffix(direction=Suffix.IMPORT)
     model.rc = Suffix(direction=Suffix.IMPORT)
@@ -841,25 +855,37 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
     #################
 
     # Revenus definition Constraints
+    def OldRevenusDef_rule(model,y,tech):
+        if tech in export_TECH :
+            return sum(model.elecProd[y,t,tech]*model.marketPrice[y,t] + model.availableCapa[y,t,tech]*IntercoOut for t in model.TIMESTAMP) == model.OldRevenus[y,tech]
+        else :
+            return sum(model.elecProd[y,t,tech]*model.marketPrice[y,t] for t in model.TIMESTAMP) == model.OldRevenus[y,tech]
+    model.OldRevenusCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=OldRevenusDef_rule)
+
+    def test_rule(model,y,tech):
+        return model.Revenus[y,tech] >= model.OldRevenus[y,tech]
+    model.testCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES,rule=test_rule)
+
     def RevenusDef_rule(model,y,tech):
-        return sum(model.elecProd[y,t,tech]*(model.marketPrice[y,t]+model.AjustFac[y,model.LastCalled[y,t]]) for t in model.TIMESTAMP) == model.Revenus[y,tech]
+        if tech in export_TECH :
+            return sum(model.elecProd[y,t,tech]*(model.marketPrice[y,t]+model.AjustFac[y,model.LastCalled[y,t]]) + model.availableCapa[y,t,tech]*IntercoOut for t in model.TIMESTAMP) == model.Revenus[y,tech]
+        else :
+            return sum(model.elecProd[y,t,tech]*(model.marketPrice[y,t]+model.AjustFac[y,model.LastCalled[y,t]]) for t in model.TIMESTAMP) == model.Revenus[y,tech]
     model.RevenusCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=RevenusDef_rule)
 
     # TotalCosts definition Constraints
     def TotalCostsDef_rule(model,y,tech):
-        if tech in ['IntercoOut','IntercoIn'] :
+        if tech in ['IntercoOut'] :
             return model.TotalCosts[y,tech] == 0
         else :
             return sum(sum(model.elecProd[y,t,tech]*(-model.conversionFactor[res,tech]*model.importCosts[y,t,res]) for res in ['uranium','gaz','hydrogen',]) + model.elecProd[y,t,tech]*model.varCosts[y-dy,tech]+ model.elecProd[y,t,tech]*model.carbonContent[y,t]*model.carbon_taxe[y] for t in model.TIMESTAMP) + model.capaCosts[y,tech] == model.TotalCosts[y,tech]
     model.TotalCostsCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=TotalCostsDef_rule)
 
     def AjustDef_rule(model,y,tech):
-        if tech in ['IntercoOut','IntercoIn','curtailment']:
-            return model.AjustFac[y, tech] == 0
-        elif tech in 'Coal_p':
+        if tech in ['Coal_p','TAC','CCG','TAC_H2','CCG_H2','IntercoOut','curtailment']:
             return Constraint.Skip
-        elif sum(model.elecProd[y,t,tech] for t in TIMESTAMP) == 0:
-            return model.AjustFac[y,tech]==0
+        elif sum(model.elecProd[y,t,tech] for t in TIMESTAMP) <= 10:
+            return model.AjustFac[y,tech]== 0
         else :
             return model.Revenus[y,tech] >= model.TotalCosts[y,tech]
     model.AjustCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=AjustDef_rule)
@@ -869,20 +895,27 @@ def GetElectricPriceModel(elecProd, marketPrice,ResParameters,TechParameters,cap
             return model.varCosts[y-dy,tech] + model.AjustFac[y,tech] <= model.varCosts[y-dy,'WindOnShore'] + model.AjustFac[y,'WindOnShore']
         if tech == 'WindOnShore' :
             return  model.varCosts[y-dy,tech] + model.AjustFac[y,tech] <= model.varCosts[y-dy,'WindOffShore'] + model.AjustFac[y,'WindOffShore']
+        if tech == 'HydroRiver' :
+            return model.varCosts[y-dy,tech] + model.AjustFac[y,tech] <= model.varCosts[y-dy,'HydroRiver'] + model.AjustFac[y,'HydroRiver']
         if tech == 'WindOffShore' :
             return  model.varCosts[y-dy,tech] + model.AjustFac[y,tech] <= sum((-model.conversionFactor[res, 'NewNuke']) * model.importCosts[y, 1, res] for res in['uranium', 'gaz', 'hydrogen', ]) + model.varCosts[y - dy, 'NewNuke'] + model.AjustFac[y, 'NewNuke']
         if tech == 'NewNuke' :
             return sum((-model.conversionFactor[res, 'NewNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'NewNuke'] + model.AjustFac[y,'NewNuke'] <= sum((-model.conversionFactor[res, 'OldNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'OldNuke'] + model.AjustFac[y,'OldNuke']
         if tech == 'OldNuke' :
             return sum((-model.conversionFactor[res, 'OldNuke']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'OldNuke'] + model.AjustFac[y,'OldNuke'] <= sum((-model.conversionFactor[res, 'CCG']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'CCG'] + model.AjustFac[y,'CCG']
-        if tech == 'CCG' :
-            return sum((-model.conversionFactor[res, 'CCG']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'CCG'] + model.AjustFac[y,'CCG'] <= sum((-model.conversionFactor[res, 'TAC']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'TAC'] + model.AjustFac[y,'TAC']
+        # if tech == 'CCG' :
+        #     return sum((-model.conversionFactor[res, 'CCG']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'CCG'] + model.AjustFac[y,'CCG'] <= sum((-model.conversionFactor[res, 'TAC']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'TAC'] + model.AjustFac[y,'TAC']
+        # if tech == 'TAC' :
+        #     return sum((-model.conversionFactor[res, 'TAC']) * model.importCosts[y, 1, res] for res in ['uranium','gaz','hydrogen',]) + model.varCosts[y-dy,'TAC'] + model.AjustFac[y,'TAC'] <=  model.varCosts[y-dy,'IntercoIn'] + model.AjustFac[y,'IntercoIn']
         else :
             return Constraint.Skip
     model.meritCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=meritDef_rule)
 
-    def Lim_rule(model,y,tech):
-        return model.AjustFac[y,tech] <= 80
-    model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
+    # def Lim_rule(model,y,tech):
+    #     if tech in ['Solar','OldNuke','WindOnShore','WindOffShore','NewNuke','HydroRiver']:
+    #         return model.AjustFac[y,tech] <= 200
+    #     else :
+    #         return Constraint.Skip
+    # model.LimCtr = Constraint(model.YEAR_op,model.TECHNOLOGIES, rule=Lim_rule)
 
     return model

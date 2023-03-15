@@ -12,7 +12,7 @@ outputPath='Data/output/'
 
 ScenarioName='Ref' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG', 'EnR+','Crack'
 outputFolder=outputPath+ScenarioName
-outputFolderFr=outputPath+ScenarioName+'_Fr'
+outputFolderFr=outputPath+ScenarioName+'_wH2_Fr'
 
 #pd.set_option('display.max_columns', 500)
 EnR,Fossils=plot_mixProdElec(outputFolderFr)

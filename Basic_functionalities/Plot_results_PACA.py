@@ -5,13 +5,12 @@ import pandas as pd
 import csv
 
 from Functions.f_graphicTools import *
-from Basic_functionalities.scenarios_ref_PACA import scenarioPACA
+from Basic_functionalities.scenario_creation import scenarioDict
 
 outputPath='Data/output/'
 
-ScenarioName='Ref_v2' # Possible Choice : 'Ref', 'eSMR', 'EnR', 'Grid', 'GN', 'BG', 'EnR+','Crack'
-outputFolder=outputPath+ScenarioName
-outputFolderFr=outputPath+ScenarioName+'_Fr'
+ScenarioName='test' # 'Ref', 'ElecOnly', 'SmrOnly','Grid','EnR',
+outputFolder=outputPath+ScenarioName+'_Base_PACA'
 
 # plot installed capacity by technologies
 capacity=plot_capacity(outputFolder)
@@ -26,10 +25,10 @@ chargeFactors=(energy/(capacity*8.760)).fillna(0)
 plot_evolve(outputFolder)
 
 # plot electricity weekly management
-plot_elecMean(scenarioPACA,outputFolder)
+plot_elecMean(scenarioDict[ScenarioName],outputFolder)
 
 # plot H2 weekly management
-plot_H2Mean(scenarioPACA,outputFolder)
+plot_H2Mean(scenarioDict[ScenarioName],outputFolder)
 
 # plot stock level
 plot_stock(outputFolder)
@@ -38,5 +37,6 @@ plot_stock(outputFolder)
 plot_carbon(outputFolder)
 
 # plot costs
-plot_costs(scenarioPACA,outputFolder)
+plot_costs(extract_costs(scenarioDict[ScenarioName],outputFolder),outputFolder)
+
 
