@@ -369,7 +369,7 @@ def get_capex_new_tech_RTE(tech, hyp='ref', year=2020, var=None):
 
 	elif tech == 'saltCavernH2_G':
 			capex = {
-				'ref':  interp1d(years, [350] * 4,fill_value=(350,350),bounds_error=False), # EUR/kWhLHV
+				'ref':  interp1d(years, [545] * 4,fill_value=(545,545),bounds_error=False), # EUR/kWhLHV
 			}		
 
 			opex = {

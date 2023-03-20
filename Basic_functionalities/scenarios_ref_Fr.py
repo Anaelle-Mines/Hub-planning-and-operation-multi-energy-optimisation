@@ -45,7 +45,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [0,5200,20900,45000]
     min_cumul_capacity = [0,5200,20900,45000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -63,7 +63,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [8000, 33200 , 47200, 58000]
     min_cumul_capacity = [8000, 33200 , 47200, 58000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year) 
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2) 
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech: 
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -81,7 +81,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity=[4000,35100,79600,118000]
     min_cumul_capacity =[4000,35100,79600,118000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year) 
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2) 
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -99,7 +99,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity=[15000,15000,16000,17000]
     min_cumul_capacity = [15000,15000,16000,17000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -117,7 +117,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [11000,11000,12000,13000]
     min_cumul_capacity = [11000,11000,12000,13000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -135,7 +135,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [63100,59400,43100,15500]
     min_cumul_capacity = [63100,59400,43100,15500]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -153,7 +153,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [0,0,6600,13200]
     min_cumul_capacity = [0,0,6600,13200]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -171,7 +171,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [6000,1000,0,0]
     min_cumul_capacity = [6000,1000,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -189,7 +189,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [7100,6500,0,0]
     min_cumul_capacity = [7100,6500,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -207,7 +207,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [0,0,0,0]
     min_cumul_capacity = [0,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -225,7 +225,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [5000,10000,10000,10000]
     min_cumul_capacity =[5000,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -243,7 +243,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [0,0,0,0]
     min_cumul_capacity =[0,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -258,7 +258,7 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "electrolysis_AEL"
     max_cumul_capacity= [0,6500,7500,13400]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Hydrogen production',
@@ -275,7 +275,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [11000,22300,29700,39400]
     min_cumul_capacity =[0,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -293,7 +293,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [11000,22300,29700,39400]
     min_cumul_capacity =[0,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -311,7 +311,7 @@ for k, year in enumerate(yearList[:-1]):
     min_install_capacity=[0,0,0,0]
     max_cumul_capacity= [100000,100000,100000,100000]
     min_cumul_capacity = [0,0,0,0]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['conversionTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year, 'Category': 'Electricity production',
@@ -331,8 +331,8 @@ for k, year in enumerate(yearList[:-1]):
     tech = "Battery"
     max_install_capacity = [0,5000,10000,77000]
     max_install_power=[0,500,1000,7700]
-    capex1, opex1, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 1h', hyp='ref', year=year)
-    capex4, opex4, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 4h', hyp='ref', year=year)
+    capex1, opex1, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 1h', hyp='ref', year=year+yearStep/2)
+    capex4, opex4, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 4h', hyp='ref', year=year+yearStep/2)
     capex_per_kWh = (capex4 - capex1) / 3
     capex_per_kW = capex1 - capex_per_kWh
 
@@ -356,7 +356,7 @@ for k, year in enumerate(yearList[:-1]):
     # tech = "STEP"
     # max_install_capacity = [30000,10000,20000,20000]
     # max_install_power=[3000,1000,2000,2000]
-    # capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    # capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     # scenarioFr['storageTechs'].append(
     #     pd.DataFrame(data={tech:
     #             { 'YEAR': year,
@@ -378,7 +378,7 @@ for k, year in enumerate(yearList[:-1]):
     tech = "saltCavernH2_G"
     max_install_capacity = [100000,100000,100000,100000]
     max_install_power=[10000,10000,10000,10000]
-    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year)
+    capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioFr['storageTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year,

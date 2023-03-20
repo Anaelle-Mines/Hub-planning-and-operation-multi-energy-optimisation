@@ -202,6 +202,8 @@ def plot_capacity(outputFolder='Data/output/'):
     Variables = {v: pd.read_csv(outputFolder + '/' + v + '.csv').drop(columns='Unnamed: 0') for v in v_list}
 
     YEAR=Variables['power_Dvar'].set_index('YEAR_op').index.unique().values
+    TECHNO = Variables['power_Dvar'].set_index('TECHNOLOGIES').index.unique().values
+    TIMESTAMP=Variables['power_Dvar'].set_index('TIMESTAMP').index.unique().values
     YEAR.sort()
 
     #region Tracé mix prod H2 et EnR
@@ -227,21 +229,21 @@ def plot_capacity(outputFolder='Data/output/'):
     for y in YEAR : EnR_loadFactor[y].loc[EnR_loadFactor[y]<-0.0001]=0
     for y in YEAR : EnR_loadFactor[y].loc[EnR_loadFactor[y]>1.0001]=0
 
-    fig, ax = plt.subplots(2,1,sharex=True)
+    fig, ax = plt.subplots(2,1,sharex=True,figsize=(6.2,4))
     width= 0.40
     labels=list(df.index)
     x = np.arange(len(labels))
-    col=sb.color_palette('muted')
+    col = plt.cm.tab20c
 
     # Create dark grey Bar
     l1=list(df['SMR w/o CCUS'])
-    ax[0].bar(x - width/2, l1,width, color=col[7], label="SMR w/o CCUS")
+    ax[0].bar(x - width/2, l1,width, color=col(17), label="SMR w/o CCUS",zorder=2)
     # Create dark bleu Bar
     l2=list(df['SMR + CCUS 50%'])
-    ax[0].bar(x - width/2,l2,width, bottom=l1,color='#005E9E', label="SMR + CCUS 50%")
+    ax[0].bar(x - width/2,l2,width, bottom=l1,color=col(0), label="SMR + CCUS 50%",zorder=2)
     #Create turquoise bleu Bar
     l3=list(df['SMR + CCUS 90%'])
-    ax[0].bar(x - width/2,l3,width, bottom=[i+j for i,j in zip(l1,l2)], color=col[9] ,label="SMR + CCUS 90%")
+    ax[0].bar(x - width/2,l3,width, bottom=[i+j for i,j in zip(l1,l2)], color=col(1) ,label="SMR + CCUS 90%",zorder=2)
     #Create orange Bar
     # l4=list(df['eSMR w/o CCUS'])
     # ax[0].bar(x - width/2,l4,width, bottom=[i+j+k for i,j,k in zip(l1,l2,l3)], color=col[1],label="eSMR w/o CCUS")
@@ -253,52 +255,105 @@ def plot_capacity(outputFolder='Data/output/'):
     #ax[0].bar(x - width/2,l6,width, bottom=[i+j+k+l+m for i,j,k,l,m in zip(l1,l2,l3,l4,l5)], color=col[6],label="Methane cracking")
     # Create green Bars
     l7=list(df['Alkaline electrolysis']+df['PEM electrolysis'])
-    ax[0].bar(x + width/2,l7,width, color=col[2],label="Water electrolysis")
+    ax[0].bar(x + width/2,l7,width, color=col(9),label="Water electrolysis",zorder=2)
 
     # Create red bar
     l8=list(df['Solar'])
-    ax[1].bar(x ,l8,width, color=col[3],label="Solar")
+    ax[1].bar(x ,l8,width, color=col(5),label="Solar",zorder=2)
     # Create violet bar
     l9=list(df['WindOnShore'])
-    ax[1].bar(x,l9,width,  bottom=l8,color=col[4],label="Wind OnShore")
+    ax[1].bar(x,l9,width,  bottom=l8,color=col(13),label="Wind OnShore",zorder=2)
     # Create pink bar
     l10=list(df['WindOffShore_flot'])
-    ax[1].bar(x,l10,width,  bottom=[i+j for i,j in zip(l8,l9)],color=col[6],label="Wind Offshore")
+    ax[1].bar(x,l10,width,  bottom=[i+j for i,j in zip(l8,l9)],color=col(14),label="Wind Offshore",zorder=2)
+    #
+    # # Create grey line
+    # ax[2].plot(x,list((round(H2_loadFactor[y]['SMR']*100)for y in YEAR)),color=col(17),label='SMR w/o CCUS',zorder=2)
+    # # Create dark blue line
+    # ax[2].plot(x, list((round(H2_loadFactor[y]['SMR + CCS1'] * 100) for y in YEAR)), color=col(0), label='SMR + CCUS 50%',zorder=2)
+    # # Create light blue line
+    # ax[2].plot(x, list((round(H2_loadFactor[y]['electrolysis_AEL'] * 100)) for y in YEAR), color=col(9), label='Water electrolysis',zorder=2)
+    # Create green line
+    # ax[2].plot(x, list((round(H2_loadFactor[y]['SMR + CCS2'] * 100)) for y in YEAR), color=col(1), label='SMR + CCUS 90%',zorder=2)
+    # Create WindOnshore line
+    # ax[2].plot(x, list((round(EnR_loadFactor[y]['WindOnShore'] * 100)) for y in YEAR),linestyle='--' ,color=col(13), label='Wind Onshore',zorder=2)
+    # # Create Solar line
+    # ax[2].plot(x, list((round(EnR_loadFactor[y]['Solar'] * 100) for y in YEAR)),linestyle='--',color=col(5), label='Solar',zorder=2)
 
     #add Load factors
-    for i,y in enumerate(YEAR):
-        if capa.loc[(y,'electrolysis_AEL'),'capacity_Pvar'] > 100:
-            ax[0].text((x + width/2)[i], l7[i]/2, str(round(H2_loadFactor[y]['electrolysis_AEL']*100)) +'%',ha='center')
-        if capa.loc[(y,'SMR'),'capacity_Pvar'] > 100:
-            ax[0].text((x - width / 2)[i], l1[i] / 2, str(round(H2_loadFactor[y]['SMR'] * 100)) + '%',ha='center',color='white')
-        if capa.loc[(y,'SMR + CCS1'),'capacity_Pvar'] > 100:
-            ax[0].text((x - width / 2)[i], l1[i]+l2[i] / 2, str(round(H2_loadFactor[y]['SMR + CCS1'] * 100)) + '%',ha='center',color='white')
-        if capa.loc[(y, 'Solar'), 'capacity_Pvar'] > 10:
-            ax[1].text((x)[i], l8[i] / 2, str(round(EnR_loadFactor[y]['Solar'] * 100)) + '%', ha='center')
-        if capa.loc[(y,'Solar'),'capacity_Pvar'] > 100:
-            ax[1].text((x)[i], l8[i]/2, str(round(EnR_loadFactor[y]['Solar'] * 100)) + '%', ha='center',color='white')
-        if capa.loc[(y,'WindOnShore'),'capacity_Pvar'] > 100:
-            ax[1].text((x)[i], l8[i]+l9[i]/2, str(round(EnR_loadFactor[y]['WindOnShore'] * 100)) + '%', ha='center',color='white')
-        if capa.loc[(y,'WindOffShore_flot'),'capacity_Pvar'] > 100:
-            ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[y]['WindOffShore_flot'] * 100)) + '%', ha='center',color='white')
+    # for i,y in enumerate(YEAR):
+    #     if capa.loc[(y,'electrolysis_AEL'),'capacity_Pvar'] > 100:
+    #         ax[0].text((x + width/2)[i], l7[i]/2, str(round(H2_loadFactor[y]['electrolysis_AEL']*100)) +'%',ha='center')
+    #     if capa.loc[(y,'SMR'),'capacity_Pvar'] > 100:
+    #         ax[0].text((x - width / 2)[i], l1[i] / 2, str(round(H2_loadFactor[y]['SMR'] * 100)) + '%',ha='center',color='white')
+    #     if capa.loc[(y,'SMR + CCS1'),'capacity_Pvar'] > 100:
+    #         ax[0].text((x - width / 2)[i], l1[i]+l2[i] / 2, str(round(H2_loadFactor[y]['SMR + CCS1'] * 100)) + '%',ha='center',color='white')
+    #     if capa.loc[(y, 'Solar'), 'capacity_Pvar'] > 10:
+    #         ax[1].text((x)[i], l8[i] / 2, str(round(EnR_loadFactor[y]['Solar'] * 100)) + '%', ha='center')
+    #     if capa.loc[(y,'Solar'),'capacity_Pvar'] > 100:
+    #         ax[1].text((x)[i], l8[i]/2, str(round(EnR_loadFactor[y]['Solar'] * 100)) + '%', ha='center',color='white')
+    #     if capa.loc[(y,'WindOnShore'),'capacity_Pvar'] > 100:
+    #         ax[1].text((x)[i], l8[i]+l9[i]/2, str(round(EnR_loadFactor[y]['WindOnShore'] * 100)) + '%', ha='center',color='white')
+    #     if capa.loc[(y,'WindOffShore_flot'),'capacity_Pvar'] > 100:
+    #         ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[y]['WindOffShore_flot'] * 100)) + '%', ha='center',color='white')
 
     ax[0].set_ylim([0,max(max([(n1,n2) for n1,n2 in zip([i+j+k for i,j,k in zip(l2,l2,l3)],l7)]))+100])
+    ax[0].grid(axis='y',alpha=0.5,zorder=1)
     ax[1].set_ylim([0,max([i+j+k for i,j,k in zip(l8,l9,l10)])+100])
+    ax[1].grid(axis='y',alpha=0.5,zorder=1)
+    # ax[2].grid(axis='y', alpha=0.5,zorder=1)
     ax[0].set_ylabel('Installed capacity (MW)')
     ax[1].set_ylabel('Installed capacity (MW)')
+    # ax[2].set_ylabel('Load factors (%)')
     ax[0].set_title("Evolution of H2 production assets")
     ax[1].set_title("Evolution of EnR assets")
+    # ax[2].set_title("Evolution of load factors")
     plt.xticks(x, ['2010-2020','2020-2030','2030-2040', '2040-2050'])#,'2050-2060'])
     # Shrink current axis by 20%
     box = ax[0].get_position()
-    ax[0].set_position([box.x0, box.y0, box.width * 0.73, box.height])
+    ax[0].set_position([box.x0, box.y0, box.width * 0.73, box.height*0.95])
     # Put a legend to the right of the current axis
     ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # Shrink current axis by 20%
     box = ax[1].get_position()
-    ax[1].set_position([box.x0, box.y0, box.width * 0.73, box.height])
+    ax[1].set_position([box.x0, box.y0, box.width * 0.73, box.height*0.95])
     # Put a legend to the right of the current axis
     ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # Shrink current axis by 20%
+    # box = ax[2].get_position()
+    # ax[2].set_position([box.x0, box.y0, box.width * 0.73, box.height*0.95])
+    # Put a legend to the right of the current axis
+    # ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(outputFolder+'/Evolution mix prod.png')
+    plt.show()
+
+    def monthly_average(df):
+        df['month'] = df.index // 730 + 1
+        df.loc[8760,'month']=12
+        return df.groupby('month').mean()
+
+    loadFactors_df=Variables['power_Dvar'].copy().pivot(index=['YEAR_op','TIMESTAMP'],columns='TECHNOLOGIES',values='power_Dvar')
+    for y in YEAR :
+        for tech in TECHNO:
+            loadFactors_df.loc[y,slice(None)][tech]=(Variables['power_Dvar'].set_index(['YEAR_op','TIMESTAMP','TECHNOLOGIES']).loc[(y,slice(None),tech),'power_Dvar']/Variables['capacity_Pvar'].set_index(['YEAR_op','TECHNOLOGIES']).loc[(y,tech),'capacity_Pvar']).reset_index().drop(columns=['TECHNOLOGIES','YEAR_op']).set_index('TIMESTAMP')['power_Dvar']
+
+    month=np.unique(TIMESTAMP//730+1)[:-1]
+
+    fig, ax = plt.subplots()
+
+    for k,y in enumerate(YEAR):
+        #Create electrolysis graph
+        l1=list(monthly_average(loadFactors_df.loc[(y,slice(None))])['electrolysis_AEL']*100)
+        plt.plot(month,l1,color=col(8+k),label=y,zorder=2)
+
+    plt.grid(axis='y',alpha=0.5,zorder=1)
+    plt.ylabel('Load factor (%)')
+    plt.xlabel('Months')
+    plt.xticks(month,['January','February','March','April','May','June','July','August','September','October','November','December'],rotation=45)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.90, box.height])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(outputFolder+'/elec_LoadFactor.png')
     plt.show()
 
     return df
@@ -325,49 +380,49 @@ def plot_energy(outputFolder='Data/output/'):
         'cracking': 'Methane cracking'
     }).fillna(0)
 
-    df = df / 1000
+    df = df / 1000000
 
     df_renewables=Variables['power_Dvar'].pivot(index=['YEAR_op','TIMESTAMP'],columns='TECHNOLOGIES',values='power_Dvar')[['WindOnShore','WindOffShore_flot','Solar']].reset_index().groupby('YEAR_op').sum().drop(columns='TIMESTAMP').sum(axis=1)
     df_export=Variables['exportation_Dvar'].groupby(['YEAR_op','RESOURCES']).sum().loc[(slice(None),'electricity'),'exportation_Dvar'].reset_index().drop(columns='RESOURCES').set_index('YEAR_op')
-    df_feedRE=(df_renewables-df_export['exportation_Dvar'])/1.54/1000#
+    df_feedRE=(df_renewables-df_export['exportation_Dvar'])/1.54/1000000#
 
     df_biogas=Variables['importation_Dvar'].groupby(['YEAR_op','RESOURCES']).sum().loc[(slice(None),'gazBio'),'importation_Dvar'].reset_index().set_index('YEAR_op').drop(columns='RESOURCES')
     for y in YEAR:
         fugitives = 0.03 * (1 - (y - YEAR[0]) / (2050 - YEAR[0]))*df_biogas.loc[y]['importation_Dvar']
         temp=df_biogas.loc[y]['importation_Dvar']-fugitives
-        if temp/1.28/1000<df.loc[y]['SMR w/o CCUS']:
-            df_biogas.loc[y]['importation_Dvar']=temp/1.28/1000
+        if temp/1.28/1000000<df.loc[y]['SMR w/o CCUS']:
+            df_biogas.loc[y]['importation_Dvar']=temp/1.28/1000000
         else:
-            temp2=temp-df.loc[y]['SMR w/o CCUS']*1.28*1000
-            if temp2/1.32/1000<df.loc[y]['SMR + CCUS 50%']:
-                df_biogas.loc[y]['importation_Dvar']=df.loc[y]['SMR w/o CCUS']+temp2/1.32/1000
+            temp2=temp-df.loc[y]['SMR w/o CCUS']*1.28*1000000
+            if temp2/1.32/1000000<df.loc[y]['SMR + CCUS 50%']:
+                df_biogas.loc[y]['importation_Dvar']=df.loc[y]['SMR w/o CCUS']+temp2/1.32/1000000
             else:
-                temp3=temp-df.loc[y]['SMR w/o CCUS']*1.28*1000-df.loc[y]['SMR + CCUS 50%']*1.32*1000
-                if temp3/1.45/1000<df.loc[y]['SMR + CCUS 90%']:
-                    df_biogas.loc[y]['importation_Dvar']=df.loc[y]['SMR w/o CCUS']+df.loc[y]['SMR + CCUS 50%']+temp3/1.45/1000
+                temp3=temp-df.loc[y]['SMR w/o CCUS']*1.28*1000000-df.loc[y]['SMR + CCUS 50%']*1.32*1000000
+                if temp3/1.45/1000000<df.loc[y]['SMR + CCUS 90%']:
+                    df_biogas.loc[y]['importation_Dvar']=df.loc[y]['SMR w/o CCUS']+df.loc[y]['SMR + CCUS 50%']+temp3/1.45/1000000
                 else :
                     df_biogas.loc[y]['importation_Dvar'] = df.loc[y]['SMR w/o CCUS']+df.loc[y]['SMR + CCUS 50%']+df.loc[y]['SMR + CCUS 90%']
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6,4))
     width = 0.35
     col=plt.cm.tab20c
     labels = list(df.index)
     x = np.arange(len(labels))
 
     # Create dark grey Bar
-    l1 = list(df['SMR w/o CCUS']/1000)
-    ax.bar(x - width / 2, l1, width, color=col(17), label="SMR w/o CCUS")
+    l1 = list(df['SMR w/o CCUS'])
+    ax.bar(x - width / 2, l1, width, color=col(17), label="SMR w/o CCUS",zorder=2)
     # Create dark bleu Bar
-    l2 = list(df['SMR + CCUS 50%']/1000)
-    ax.bar(x - width / 2, l2, width, bottom=l1, color=col(0), label="SMR + CCUS 50%")
+    l2 = list(df['SMR + CCUS 50%'])
+    ax.bar(x - width / 2, l2, width, bottom=l1, color=col(0), label="SMR + CCUS 50%",zorder=2)
     # Create turquoise bleu Bar
-    l3 = list(df['SMR + CCUS 90%']/1000)
-    ax.bar(x - width / 2, l3, width, bottom=[i + j for i, j in zip(l1, l2)], color=col(1), label="SMR + CCUS 90%")
+    l3 = list(df['SMR + CCUS 90%'])
+    ax.bar(x - width / 2, l3, width, bottom=[i + j for i, j in zip(l1, l2)], color=col(1), label="SMR + CCUS 90%",zorder=2)
     # Create biogas Bars
-    l8=list(df_biogas['importation_Dvar']/1000)
+    l8=list(df_biogas['importation_Dvar'])
     plt.rcParams['hatch.linewidth']=8
     plt.rcParams['hatch.color'] = col(3)
-    ax.bar(x - width / 2,l8,width,color='none',hatch='/',edgecolor=col(3),linewidth=0.5,label="Biomethane feed",alpha=0.8)
+    ax.bar(x - width / 2,l8,width,color='none',hatch='/',edgecolor=col(3),linewidth=0.5,label="Biomethane feed",alpha=0.8,zorder=3)
     # # Create orange Bar
     # l4 = list(df['eSMR w/o CCUS'])
     # ax.bar(x - width / 2, l4, width, bottom=[i + j + k for i, j, k in zip(l1, l2, l3)], color=col[1],
@@ -381,16 +436,18 @@ def plot_energy(outputFolder='Data/output/'):
     # ax.bar(x - width / 2, l6, width, bottom=[i + j + k + l + m for i, j, k, l, m in zip(l1, l2, l3, l4, l5)],
     #        color=col[6], label="Methane cracking")
     # Create light green Bars
-    l7 = list(df['Alkaline electrolysis']/1000 + df['PEM electrolysis']/1000)
-    ax.bar(x + width / 2, l7, width, color=col(8), label="Water electrolysis")
+    l7 = list(df['Alkaline electrolysis']+ df['PEM electrolysis'])
+    ax.bar(x + width / 2, l7, width, color=col(8), label="Water electrolysis",zorder=2)
     # Create dark green bar
-    l9=list(df_feedRE/1000)
-    ax.bar(x + width / 2,l9,width,color=col(9),label="Local RE feed")
+    l9=list(df_feedRE)
+    ax.bar(x + width / 2,l9,width,color=col(9),label="Local RE feed",zorder=3)
 
+    plt.grid(axis='y',alpha=0.5,zorder=1)
     ax.set_ylabel('H2 production (TWh/yr)')
     # ax.set_title("Use of assets")
-    plt.xticks(x, ['2020', '2030', '2040', '2050'])#,'2060'])
-    ax.set_ylim([0,4])
+    plt.xticks(x, ['2020-2030', '2030-2040', '2040-2050', '2050-2060'])#,'2060'])
+    m=max(max(l7),max(l1+l2+l3))
+    ax.set_ylim([0,int(m)+1])
     # Shrink current axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.72, box.height])
@@ -479,7 +536,8 @@ def plot_elecMean(scenario,outputFolder='Data/output/'):
     YEAR.sort()
 
     def weekly_average(df):
-        df['week'] = df.index // 168
+        df['week'] = df.index // 168 + 1
+        df.loc[8736:8760,'week']=52
         return df.groupby('week').sum() / 1000
 
     convFac = inputDict[ 'conversionFactor']
@@ -501,9 +559,11 @@ def plot_elecMean(scenario,outputFolder='Data/output/'):
 
 
     fig, ax = plt.subplots(4, 1, figsize=(6, 10), sharex=True)
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
 
     for k, yr in enumerate(YEAR):
-        ax[k].yaxis.grid(linestyle='--', linewidth=0.5)
+        ax[k].yaxis.grid(linestyle='--', linewidth=0.5,zorder=-6)
 
         # power_Dvar
         Pel[yr] = weekly_average(Pel[yr])
@@ -516,18 +576,18 @@ def plot_elecMean(scenario,outputFolder='Data/output/'):
         Pel_exp[yr] = weekly_average(Pel_exp[yr])
 
         # Elec production
-        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'], label='Solar - PV',color='#ffb233', zorder=-1)
-        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'] + Pel[yr]['WindOffShore_flot'], label='Wind - Offshore',color='#33caff', zorder=-2)
-        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'] + Pel[yr]['WindOffShore_flot'] + Pel[yr]['WindOnShore'], label='Wind - Onshore', color='#3b8ff9',zorder=-3)
-        ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'],label='Battery - Out',color='#fd46c8', zorder=-4)
-        ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'] + Pel_imp[yr]['electricity'],label='Imports',color='#f74242',  zorder=-5)
+        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'], label='Solar - PV',color=col(5), zorder=-1)
+        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'] + Pel[yr]['WindOnShore'], label='Wind - Onshore', color=col(13),zorder=-2)
+        ax[k].bar(Pel[yr].index, Pel[yr]['Solar'] + Pel[yr]['WindOffShore_flot'] + Pel[yr]['WindOnShore'], label='Wind - Offshore',color=col(14), zorder=-3)
+        ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'],label='Battery - Out',color=colBis(9), zorder=-4)
+        ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['Solar'] + Pel_imp[yr]['electricity'],label='Imports',color=colBis(14),  zorder=-5)
 
         # Elec consumption
-        ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color='#52de57', zorder=-1)
-        ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color='#f4f72e', zorder=-2)
-        ax[k].bar(Pel[yr].index, Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] , label='CCUS',color='#7c7c7c', zorder=-3)
-        ax[k].bar(Pel_stock_in[yr].index, -Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2']  , label='Battery - In', color='#d460df' ,zorder=-4)
-        ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] - Pel_exp[yr]['electricity'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'], label='Exports',color='#ff7f7f',zorder=-5)
+        ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color=col(9), zorder=-1)
+        # ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color=col(0), zorder=-2)
+        # ax[k].bar(Pel[yr].index, Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] , label='CCUS',color=col(0), zorder=-3)
+        ax[k].bar(Pel_stock_in[yr].index, -Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2']  , label='Battery - In', color=colBis(8) ,zorder=-4)
+        ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['Battery'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'] + Pel[yr]['SMR_elec'] - Pel_exp[yr]['electricity'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'], label='Exports',color=colBis(15),zorder=-5)
 
         ax[k].set_ylabel('Weakly production (GWh)')
         m=(Pel_stock_out[yr]['Battery'] + Pel[yr]['WindOnShore'] + Pel[yr]['WindOffShore_flot']  + Pel[yr]['Solar'] + Pel_imp[yr]['electricity']).max()+10
@@ -547,7 +607,8 @@ def plot_elecMean(scenario,outputFolder='Data/output/'):
 def plot_H2Mean(scenario,outputFolder='Data/output/'):
 
     def weekly_average(df):
-        df['week'] = df.index // 168
+        df['week'] = df.index // 168 + 1
+        df.loc[8736:8760,'week']=52
         return df.groupby('week').sum() / 1000
 
     v_list = ['capacityInvest_Dvar', 'transInvest_Dvar', 'capacity_Pvar', 'capacityDel_Pvar', 'capacityDem_Dvar',
@@ -582,9 +643,11 @@ def plot_H2Mean(scenario,outputFolder='Data/output/'):
 
 
     fig, ax = plt.subplots(4, 1, figsize=(6, 10), sharex=True)
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
 
     for k, yr in enumerate(YEAR):
-        ax[k].yaxis.grid(linestyle='--', linewidth=0.5)
+        ax[k].yaxis.grid(linestyle='--', linewidth=0.5,zorder=-6)
 
         # power_Dvar
         Pel[yr] = weekly_average(Pel[yr])
@@ -599,19 +662,20 @@ def plot_H2Mean(scenario,outputFolder='Data/output/'):
         Pel_exp[yr] = weekly_average(Pel_exp[yr])
 
         # H2 production
-        ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color='#52de57', zorder=-1)
-        ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color='#f4f72e', zorder=-2)
-        ax[k].bar(Pel[yr].index, Pel[yr]['SMR'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='SMR',color='#7c7c7c', zorder=-3)
-        #ax[k].bar(Pel[yr].index, Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL'] + Pel[yr]['electrolysis_PEMEL']+ Pel[yr]['cracking'],label='Methane cracking', color='#33caff', zorder=-4)
-        ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'],label='Tank - Out',color='#fd46c8', zorder=-5)
-        ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['tankH2_G'] + Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL']+ Pel_imp[yr]['hydrogen'],label='Imports',color='#f74242',  zorder=-6)
+        ax[k].bar(Pel[yr].index, Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='Electrolysis',color=col(9), zorder=-1)
+        # ax[k].bar(Pel[yr].index, Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='eSMR',color=col(0), zorder=-2)
+        ax[k].bar(Pel[yr].index, Pel[yr]['SMR'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'], label='SMR w/o CCUS',color=col(17), zorder=-3)
+        ax[k].bar(Pel[yr].index,Pel[yr]['SMR'] + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL'] + Pel[yr]['electrolysis_PEMEL'], label='SMR w CCUS',color=col(0), zorder=-4)
+        #ax[k].bar(Pel[yr].index, Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL'] + Pel[yr]['electrolysis_PEMEL']+ Pel[yr]['cracking'],label='Methane cracking', color='#33caff', zorder=-5)
+        ax[k].bar(Pel_stock_out[yr].index, Pel_stock_out[yr]['tankH2_G']+Pel_stock_in[yr]['saltCavernH2_G'] + Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL'],label='Stock - Out',color=colBis(18), zorder=-6)
+        # ax[k].bar(Pel_stock_out[yr].index,Pel_stock_out[yr]['tankH2_G']+Pel_stock_in[yr]['saltCavernH2_G'] + Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL']+ Pel_imp[yr]['hydrogen'],label='Imports',color='#f74242',  zorder=-7)
 
         # H2 concumption
-        ax[k].bar(Pel[yr].index, -Conso[yr]['hydrogen'], label='Consumption',color='#ffb233', zorder=-1)
-        ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['tankH2_G'] - Conso[yr]['hydrogen'], label='Tank - In',color='#d460df',zorder=-2)
+        ax[k].bar(Pel[yr].index, -Conso[yr]['hydrogen'], label='Consumption',color=colBis(10), zorder=-1)
+        ax[k].bar(Pel_stock_in[yr].index,-Pel_stock_in[yr]['tankH2_G'] - Conso[yr]['hydrogen'], label='Stock - In',color=colBis(17),zorder=-2)
 
         ax[k].set_ylabel('Weakly production (GWh)')
-        m=(Pel_stock_in[yr]['tankH2_G'] + Conso[yr]['hydrogen']).max()+10
+        m=max((Pel_stock_in[yr]['tankH2_G']+Pel_stock_in[yr]['saltCavernH2_G'] + Conso[yr]['hydrogen']).max()+10,(Pel_stock_out[yr]['tankH2_G']+Pel_stock_in[yr]['saltCavernH2_G'] + Pel[yr]['SMR']  + Pel[yr]['SMR + CCS1'] + Pel[yr]['SMR + CCS2'] + Pel[yr]['SMR_elec'] + Pel[yr]['SMR_elecCCS1'] + Pel[yr]['electrolysis_AEL']+Pel[yr]['electrolysis_PEMEL']+ Pel_imp[yr]['hydrogen']).max()+10)
         ax[k].set_ylim([-m, m])
         ax[k].set_title(YEAR[k])
         # Shrink all axis by 20%
@@ -641,16 +705,35 @@ def plot_stock(outputFolder='Data/output/'):
 
     # hourly
     fig, ax = plt.subplots(4, 1, figsize=(6, 10), sharex=True,sharey=True)
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
     for k,yr in enumerate(YEAR):
-        ax[k].plot(stock[yr].index,stock[yr]['tankH2_G']/1000,label='Stock hydrogen')
-        ax[k].plot(stock[yr].index, stock[yr]['Battery']/1000, label='Stock electricity')
-        ax[k].set_ylabel('Storage (GWh)')
+        ax[k].plot(stock[yr].index,stock[yr]['tankH2_G']/1000,color=colBis(6),label='Stock hydrogen tank')
+        ax[k].plot(stock[yr].index, stock[yr]['saltCavernH2_G'] / 1000,color=colBis(17), label='Stock hydrogen cavern')
+        # ax[k].plot(stock[yr].index, stock[yr]['Battery']/1000, color=colBis(8),label='Stock electricity')
+        ax[k].set_ylabel('Stock level (GWh)')
         # Shrink all axis by 20%
         box = ax[k].get_position()
         ax[k].set_position([box.x0, box.y0, box.width * 0.74, box.height])
     ax[0].legend(loc='upper left', bbox_to_anchor=(1, 1))
     ax[-1].set_xlabel('Hour')
     plt.savefig(outputFolder+'/Gestion stockage.png')
+    plt.show()
+
+    fig, ax = plt.subplots()
+    ax1=ax.twinx()
+    l1=ax.plot(stock[2050].index,stock[2050]['tankH2_G']/1000,color=colBis(6),label='Stock tank')
+    l2=ax1.plot(stock[2050].index, stock[2050]['saltCavernH2_G'] / 1000,color=colBis(17), label='Stock cavern')
+    # l3=ax.plot(stock[yr].index, stock[yr]['Battery']/1000, color=colBis(8),label='Stock electricity')
+    legendLabels=[l.get_label() for l in l1+l2]
+    ax.set_ylabel('Tank stock level (GWh)')
+    ax1.set_ylabel('Cavern stock level (GWh)')
+    # Shrink all axis by 20%
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width * 0.74, box.height])
+    plt.legend(l1+l2,legendLabels,loc='upper left', bbox_to_anchor=(1.1, 1))
+    ax.set_xlabel('Hour')
+    plt.savefig(outputFolder+'/Stock 2050.png')
     plt.show()
 
     return
@@ -761,7 +844,7 @@ def extract_costs(scenario,outputFolder='Data/output/'):
         df1.loc[(y,slice(None)),'capexElec']=df1.loc[(y,slice(None)),'elecPercent']*(df3.loc[(y,'WindOnShore')]['capacityCosts_Pvar']+df3.loc[(y,'WindOffShore_flot')]['capacityCosts_Pvar']+df3.loc[(y,'Solar')]['capacityCosts_Pvar'])/actualisationFactor(r,y)
         df1.loc[(y, slice(None)), 'importGas'] = df1.loc[(y,slice(None)),'gasPercent']*(df2.loc[(y, 'gazNat')]['importCosts']+df2.loc[(y, 'gazBio')]['importCosts'])/actualisationFactor(r,y)
         df1.loc[(y,slice(None)),'storageElec']=df1.loc[(y,slice(None)),'elecPercent']*df4.loc[(y,'Battery')]['storageCosts']/actualisationFactor(r,y)
-        df1.loc[(y, slice(None)), 'storageH2'] = df1.loc[(y, slice(None)), 'prodPercent'] * df4.loc[(y, 'tankH2_G')]['storageCosts']/actualisationFactor(r,y)
+        df1.loc[(y, slice(None)), 'storageH2'] = df1.loc[(y, slice(None)), 'prodPercent'] *( df4.loc[(y, 'tankH2_G')]['storageCosts']+ df4.loc[(y, 'saltCavernH2_G')]['storageCosts'])/actualisationFactor(r,y)
         df1.loc[(y,slice(None)),'carbon']=df1.loc[(y,slice(None)),'carbon']/actualisationFactor(r,y)
         df1.loc[(y, slice(None)), 'powerCosts'] = df1.loc[(y, slice(None)), 'powerCosts'] / actualisationFactor(r, y)
         df1.loc[(y, slice(None)), 'capacityCosts'] = df1.loc[(y, slice(None)), 'capacityCosts'] / actualisationFactor(r, y)
@@ -799,14 +882,15 @@ def plot_costs(df,outputFolder='Data/output/',comparaison=False):
     width= 0.30
     labels=list(df['SMR'].index)
     x = np.arange(len(labels))
-    col=sb.color_palette('muted')
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
     #code couleur Mines
-    dbl='#005E9E'
-    lbl='#2BA9FF'
-    rd='#fca592'
-    ye='#F8B740'
-    br='#e1a673'
-    gr='#cccccc'
+    # dbl='#005E9E'
+    # lbl='#2BA9FF'
+    # rd='#fca592'
+    # ye='#F8B740'
+    # br='#e1a673'
+    # gr='#cccccc'
     parameters={'axes.labelsize': 12,
                 'xtick.labelsize': 12,
                 'ytick.labelsize': 12,
@@ -845,55 +929,55 @@ def plot_costs(df,outputFolder='Data/output/',comparaison=False):
     a={}
     for i in np.arange(B_nb):
         a[i]=list(df[B[i]]['capacityCosts']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], a[i], width, color=lbl,label="Fixed Costs" if i==0 else "")
+        plt.bar(x + X[i], a[i], width, color=col(1),label="Fixed Costs" if i==0 else "")
 
     # Create dark blue Bars
     aa={}
     for i in np.arange(B_nb):
         aa[i]=list(df[B[i]]['powerCosts']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], aa[i], width,bottom=a[i], color=dbl,label="Variable Costs" if i==0 else "")
+        plt.bar(x + X[i], aa[i], width,bottom=a[i], color=col(0),label="Variable Costs" if i==0 else "")
 
     # Create brown Bars
     b={}
     for i in np.arange(B_nb):
         b[i]=list(df[B[i]]['importGas']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], b[i], width, bottom=[i + j for i, j in zip(a[i],aa[i])], color=br,label="Gas" if i==0 else "")
+        plt.bar(x + X[i], b[i], width, bottom=[i + j for i, j in zip(a[i],aa[i])], color=colBis(9),label="Gas" if i==0 else "")
 
     # Create green Bars
     c={}
     for i in np.arange(B_nb):
         c[i]=list(df[B[i]]['capexElec']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], c[i], width, bottom=[i + j + k for i, j, k in zip(a[i],aa[i],b[i])], color=col[2],label="Local electricity" if i==0 else "")
+        plt.bar(x + X[i], c[i], width, bottom=[i + j + k for i, j, k in zip(a[i],aa[i],b[i])], color=col(9),label="Local electricity" if i==0 else "")
 
-    # Create light red Bars
+    # Create dark red Bars
     d={}
     for i in np.arange(B_nb):
         d[i]=list(df[B[i]]['importElec']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], d[i], width, bottom=[i + j + k + l for i, j, k, l in zip(a[i],aa[i],b[i],c[i])], color=rd,label="Grid electricity" if i==0 else "")
+        plt.bar(x + X[i], d[i], width, bottom=[i + j + k + l for i, j, k, l in zip(a[i],aa[i],b[i],c[i])], color=colBis(14),label="Grid electricity" if i==0 else "")
 
-    # Create dark red Bars
+    # Create light red Bars
     e={}
     for i in np.arange(B_nb):
         e[i]=list(df[B[i]]['TURPE']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], e[i], width,  bottom=[i + j + k + l + m for i, j, k, l, m in zip(a[i],aa[i],b[i],c[i],d[i])], color=col[3],label="Network taxes" if i==0 else "")
+        plt.bar(x + X[i], e[i], width,  bottom=[i + j + k + l + m for i, j, k, l, m in zip(a[i],aa[i],b[i],c[i],d[i])], color=colBis(15),label="Network taxes" if i==0 else "")
 
-    # Create yellow Bars
+    # Create purple Bars
     f={}
     for i in np.arange(B_nb):
         f[i]=list(df[B[i]]['storageH2']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], f[i], width,   bottom=[i + j + k + l + m + n for i, j, k, l, m, n in  zip(a[i],aa[i],b[i],c[i],d[i],e[i])], color=ye,label="H2 storage capa" if i==0 else "")
+        plt.bar(x + X[i], f[i], width,   bottom=[i + j + k + l + m + n for i, j, k, l, m, n in  zip(a[i],aa[i],b[i],c[i],d[i],e[i])], color=colBis(17),label="H2 storage capa" if i==0 else "")
 
-    # Create orange Bars
+    # Create yellow Bars
     g={}
     for i in np.arange(B_nb):
         g[i]=list(df[B[i]]['storageElec']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], g[i], width,   bottom=[i + j + k + l + m + n +o for i, j, k, l, m, n, o in zip(a[i],aa[i],b[i],c[i],d[i],e[i],f[i])], color=col[1],label="Elec storage capa" if i==0 else "")
+        plt.bar(x + X[i], g[i], width,   bottom=[i + j + k + l + m + n +o for i, j, k, l, m, n, o in zip(a[i],aa[i],b[i],c[i],d[i],e[i],f[i])], color=col(5),label="Elec storage capa" if i==0 else "")
 
     # Create grey Bars
     h={}
     for i in np.arange(B_nb):
         h[i]=list(df[B[i]]['carbon']/(df[B[i]]['Prod']*30))
-        plt.bar(x + X[i], h[i], width,   bottom=[i + j + k + l + m + n + o +p for i, j, k, l, m, n, o, p in zip(a[i],aa[i],b[i],c[i],d[i],e[i],f[i],g[i])], color=gr,label="Carbon tax" if i==0 else "")
+        plt.bar(x + X[i], h[i], width,   bottom=[i + j + k + l + m + n + o +p for i, j, k, l, m, n, o, p in zip(a[i],aa[i],b[i],c[i],d[i],e[i],f[i],g[i])], color=col(18),label="Carbon tax" if i==0 else "")
 
     s= {}
     for i in np.arange(B_nb):
@@ -1290,7 +1374,7 @@ def plot_compare_elecPrice(dico,scenarioNames,outputPath='Data/output/'):
 
     return
 
-def plot_compare_test(dico_ener, scenarioNames, outputPath='Data/output/'):
+def plot_compare_energy_and_carbon(dico_ener, scenarioNames, outputPath='Data/output/'):
     YEAR = list(list(dico_ener.items())[0][1].items())[0][1].index.values
     YEAR.sort()
     L = list(dico_ener.keys())
@@ -1312,29 +1396,26 @@ def plot_compare_test(dico_ener, scenarioNames, outputPath='Data/output/'):
     x = np.arange(len(labels))
 
     for k, l in enumerate(L):
-        ax[k].grid(axis='y',alpha=0.5,color=col(19))
+        ax[k].grid(axis='y',alpha=0.5,color=col(19),zorder=1)
 
     for k, l in enumerate(L):
         # Create grey Bars
         l1 = list(dico_ener[l]['SMR w/o CCUS'] / 1000)
-        ax[k].bar(x - width/2, l1, width, color=col(17),label="SMR w/o CCUS" if k == 2 else '')
+        ax[k].bar(x - width/2, l1, width, color=col(17),label="SMR w/o CCUS" if k == 2 else '',zorder=2)
         # Create blue Bars
         l2 = list((dico_ener[l]['SMR + CCUS 50%'] + dico_ener[l]['SMR + CCUS 90%']) / 1000)
-        ax[k].bar(x - width/2 , l2, width, bottom=l1, color=col(0),label="SMR + CCUS" if k == 2 else '')
+        ax[k].bar(x - width/2 , l2, width, bottom=l1, color=col(0),label="SMR + CCUS" if k == 2 else '',zorder=2)
         # Create biogas Bars
         plt.rcParams['hatch.linewidth'] = 8
         plt.rcParams['hatch.color'] = col(3)
         l8 = list(dico_ener[l]['feedBiogas'] / 1000)
-        ax[k].bar(x - width/2, l8, width, color='none', hatch='/',linewidth=0.5, edgecolor=col(3),alpha=0.8,label="Biomethane feed" if k == 2 else '')
+        ax[k].bar(x - width/2, l8, width, color='none', hatch='/',linewidth=0.5, edgecolor=col(3),alpha=0.8,label="Biomethane feed" if k == 2 else '',zorder=3)
         # Create green Bars
         l7 = list((dico_ener[l]['Alkaline electrolysis']+ dico_ener[l]['PEM electrolysis']) / 1000)
-        ax[k].bar(x + width/2, l7, width, color=col(8),label="Water electrolysis" if k == 2 else '')
+        ax[k].bar(x + width/2, l7, width, color=col(8),label="Water electrolysis" if k == 2 else '',zorder=2)
         # Create Local renewables bars
         l9 = list(dico_ener[l]['feedRE'] / 1000)
-        ax[k].bar(x + width/2, l9, width,color=col(9),label="Local RE feed" if k == 2 else '')
-        # add carbon emission
-        # l10 = list(dico_ener[l]['carbon'])
-        # ay.plot(l10,marker=scenarioMarkers[k],color=scenarioColors[k], label=scenarioNames[k])
+        ax[k].bar(x + width/2, l9, width,color=col(9),label="Local RE feed" if k == 2 else '',zorder=3)
 
     ax[0].set_ylabel('H2 production (TWh/an)')
     for k,l in enumerate(L):
@@ -1361,8 +1442,120 @@ def plot_compare_test(dico_ener, scenarioNames, outputPath='Data/output/'):
     plt.savefig(outputPath + '/Comparison energy.png')
     plt.show()
 
-    # scenarioColors=[col(17),col(18),col(19)]
-    # scenarioMarkers=['.','+','x']
+    fig,ax=plt.subplots(1,1,figsize=(4,2.5))
+
+    scenarioColors=[col(1),col(5),col(9)]
+    scenarioMarkers=['o','v','s']
+
+    for k, l in enumerate(L):
+    # add carbon emission
+        l10 = list(dico_ener[l]['carbon'])
+        ax.plot(l10,marker=scenarioMarkers[k],color=scenarioColors[k], label=scenarioNames[k],zorder=2)
+
+    plt.xticks(x,['2030', '2040', '2050'])  # ,'2060'])
+    plt.ylabel('$kgCO_2/kgH_2$')
+    plt.grid(axis='y',alpha=0.5,zorder=1)
+    # ay.set_title('Carbon content')
+    # Shrink current axis by 20%
+    # box = ax.get_position()
+    # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # Put a legend to the right of the current axis
+    # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.legend()
+    plt.savefig(outputPath + '/Comparison carbon.png')
+    plt.show()
+
+    return
+
+def plot_compare_energy_and_costs(dico_ener, scenarioNames, outputPath='Data/output/'):
+    YEAR = list(list(dico_ener.items())[0][1].items())[0][1].index.values
+    YEAR.sort()
+    L = list(dico_ener.keys())
+
+    for l in L:
+        dico_ener[l] = dico_ener[l].loc[2030:2050]
+
+    # fig=plt.figure(figsize=(8,6))
+    # F = GridSpec(2,3,figure=fig)
+    fig,ax=plt.subplots(1,3,sharey=True,figsize=(10,3))
+    # ax1 = fig.add_subplot(F[0,0])
+    # ax2 = fig.add_subplot(F[0,1],sharey=ax1)
+    # ax3 = fig.add_subplot(F[0,2],sharey=ax1)
+    # ax = [ax1, ax2, ax3]
+    # ay = fig.add_subplot(F[1,:])
+    width = 0.35
+    col = plt.cm.tab20c
+    labels = list(YEAR[1:])
+    x = np.arange(len(labels))
+
+    for k, l in enumerate(L):
+        ax[k].grid(axis='y',alpha=0.5,color=col(19),zorder=1)
+
+    for k, l in enumerate(L):
+        # Create grey Bars
+        l1 = list(dico_ener[l]['SMR w/o CCUS'] / 1000)
+        ax[k].bar(x - width/2, l1, width, color=col(17),label="SMR w/o CCUS" if k == 2 else '',zorder=2)
+        # Create blue Bars
+        l2 = list((dico_ener[l]['SMR + CCUS 50%'] + dico_ener[l]['SMR + CCUS 90%']) / 1000)
+        ax[k].bar(x - width/2 , l2, width, bottom=l1, color=col(0),label="SMR + CCUS" if k == 2 else '',zorder=2)
+        # Create biogas Bars
+        plt.rcParams['hatch.linewidth'] = 8
+        plt.rcParams['hatch.color'] = col(3)
+        l8 = list(dico_ener[l]['feedBiogas'] / 1000)
+        ax[k].bar(x - width/2, l8, width, color='none', hatch='/',linewidth=0.5, edgecolor=col(3),alpha=0.8,label="Biomethane feed" if k == 2 else '',zorder=3)
+        # Create green Bars
+        l7 = list((dico_ener[l]['Alkaline electrolysis']+ dico_ener[l]['PEM electrolysis']) / 1000)
+        ax[k].bar(x + width/2, l7, width, color=col(8),label="Water electrolysis" if k == 2 else '',zorder=2)
+        # Create Local renewables bars
+        l9 = list(dico_ener[l]['feedRE'] / 1000)
+        ax[k].bar(x + width/2, l9, width,color=col(9),label="Local RE feed" if k == 2 else '',zorder=3)
+
+    ax[0].set_ylabel('H2 production (TWh/an)')
+    for k,l in enumerate(L):
+        ax[k].set_title(scenarioNames[k])
+        ax[k].set_xticks(x)
+        ax[k].set_xticklabels(['2030', '2040', '2050'])# ,'2060'])
+    # ay.set_xticks(x)
+    # ay.set_xticklabels(['2030', '2040', '2050'])  # ,'2060'])
+    # ay.set_ylabel('kgCO2/kgH2')
+    # ay.set_title('Carbon content')
+    # Shrink current axis by 20%
+    box = ax[0].get_position()
+    ax[0].set_position([box.x0, box.y0, box.width * 0.9, box.height])
+    box = ax[1].get_position()
+    ax[1].set_position([box.x0-0.05, box.y0, box.width * 0.9, box.height])
+    box = ax[2].get_position()
+    ax[2].set_position([box.x0-0.1, box.y0, box.width * 0.9, box.height])
+    # Put a legend to the right of the current axis
+    ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # box = ay.get_position()
+    # ay.set_position([box.x0, box.y0, box.width * 0.815, box.height*0.8])
+    # Put a legend to the right of the current axis
+    # ay.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(outputPath + '/Comparison energy.png')
+    plt.show()
+
+    fig,ax=plt.subplots(1,1,figsize=(5,2.5))
+
+    scenarioColors=[col(1),col(5),col(9)]
+    scenarioMarkers=['o','v','s']
+
+    for k, l in enumerate(L):
+    # add carbon emission
+        l10 = list(dico_ener[l]['costs'])
+        ax.plot(l10,marker=scenarioMarkers[k],color=scenarioColors[k], label=scenarioNames[k],zorder=2)
+
+    plt.xticks(x,['2030', '2040', '2050'])  # ,'2060'])
+    plt.ylabel('$€/kgH_2$')
+    plt.grid(axis='y', alpha=0.5,zorder=1)
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.68, box.height])
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # plt.legend()
+    plt.savefig(outputPath + '/Comparison costs.png')
+    plt.show()
 
     return
 

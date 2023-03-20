@@ -262,8 +262,10 @@ scenarioPACAtest['conversionTechs'] = pd.concat(scenarioPACAtest['conversionTech
 scenarioPACAtest['storageTechs'] = []
 for k, year in enumerate(yearList[:-1]):
     tech = "Battery"
-    max_install_capacity = [0,5000,10000,77000]
-    max_install_power=[0,500,1000,7700]
+    # max_install_capacity = [0,5000,10000,77000]
+    max_install_capacity = [0, 0, 0, 0]
+    # max_install_power=[0,500,1000,7700]
+    max_install_power = [0, 0, 0, 0]
     capex1, opex1, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 1h', hyp='ref', year=year+yearStep/2)
     capex4, opex4, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 4h', hyp='ref', year=year+yearStep/2)
     capex_per_kWh = (capex4 - capex1) / 3
@@ -297,8 +299,8 @@ for k, year in enumerate(yearList[:-1]):
                 { 'YEAR': year, 
                'resource': 'hydrogen',
                'storagelifeSpan': lifespan,
-                'storagePowerCost': capex*0.6,
-                'storageEnergyCost': capex*0.4,
+                'storagePowerCost': capex*0.7,
+                'storageEnergyCost': capex*0.3,
                 'storageOperationCost': opex,
                 'p_max': max_install_power[k],
                 'c_max': max_install_capacity[k],
@@ -311,18 +313,18 @@ for k, year in enumerate(yearList[:-1]):
     )
 
     tech = "saltCavernH2_G"
-    # max_install_capacity = [0,130000,130000,130000]
-    max_install_capacity = [0, 0, 0, 0]
-    # max_install_power=[0,13000,13000,13000]
-    max_install_power = [0, 0, 0, 0]
+    max_install_capacity = [0,130000,130000,130000]
+    # max_install_capacity = [0, 0, 0, 0]
+    max_install_power=[0,13000,13000,13000]
+    # max_install_power = [0, 0, 0, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioPACAtest['storageTechs'].append(
         pd.DataFrame(data={tech:
                 { 'YEAR': year,
                'resource': 'hydrogen',
                'storagelifeSpan': lifespan,
-                'storagePowerCost': 1000,
-                'storageEnergyCost': capex,
+                'storagePowerCost': capex,
+                'storageEnergyCost': 280,
                 'storageOperationCost': opex,
                 'p_max': max_install_power[k],
                 'c_max': max_install_capacity[k],

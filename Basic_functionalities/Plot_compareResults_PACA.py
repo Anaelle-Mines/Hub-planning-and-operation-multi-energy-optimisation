@@ -196,24 +196,24 @@ plot_carbonCosts(dico_costs,scenarioNames)
 # comparaison energy
 
 dico_ener={}
-scenarioList=[('Ref','Base'),('Ref','Var_CO2_10'),('Ref','Var_CO2_100')]
-scenarioNames=['$CO_2=50€/t$','$CO_2=10€/t$','$CO_2=1000€/t$']
+scenarioList=[('test','Base'),('test','CO2_10'),('test','CO2_100')]
+scenarioNames=['$CO_2=50€/t$','$CO_2=10€/t$','$CO_2=100€/t$']
 # scenarioList=[('Ref','Base'),('Ref','Var_RE_x2'),('Ref','Var_RE_inf')]
 # scenarioNames=['Ref','Var_RE_x2','Var_RE_inf']
 for s,k in scenarioList:
     outputFolder=outputPath+s+'_'+k+'_PACA'
     dico_ener[s+'_'+k]=extract_energy(scenarioDict[s],outputFolder)
 
-plot_compare_test(dico_ener,scenarioNames)
+plot_compare_energy_and_carbon(dico_ener,scenarioNames)
 
 
 # comparaison energy and costs
 
 dico_ener={}
-scenarioList=[('Ref','Base'),('Ref','Var_RE_x2'),('Ref','Var_RE_inf')]
-scenarioNames=['Ref','Var_RE_x2','Var_RE_inf']
+scenarioList=[('test','Base'),('test','RE_x2'),('test','RE_inf')]
+scenarioNames=['Reference','Renewables x2','Renewables unbounded']
 for s,k in scenarioList:
     outputFolder=outputPath+s+'_'+k+'_PACA'
     dico_ener[s+'_'+k]=extract_energy(scenarioDict[s],outputFolder)
 
-plot_compare_energy_costs(dico_ener,scenarioNames)
+plot_compare_energy_and_costs(dico_ener,scenarioNames)
