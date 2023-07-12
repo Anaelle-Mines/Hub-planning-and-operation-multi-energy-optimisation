@@ -1,4 +1,0 @@
-﻿STOCK_TECHNO,YEAR,resource,storagePowerInvestCost,storageEnergyInvestCost,storageOperationCost,storagelifeSpan
-Battery,2020,electricity,223600,239940,4472,15
-STEP,2020,electricity,400000,1000,650,40
-tankH2_G,2020,hydrogen,10000,8000,650,20
