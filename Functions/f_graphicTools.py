@@ -1,41 +1,15 @@
-#region Importation of modules
-import os
-if os.path.basename(os.getcwd())=="BasicFunctionalities":
-    os.chdir('..') ## to work at project root  like in any IDE
-import sys
-if sys.platform != 'win32':
-    myhost = os.uname()[1]
-else : myhost = ""
-if (myhost=="jupyter-sop"):
-    ## for https://jupyter-sop.mines-paristech.fr/ users, you need to
-    #  (1) run the following in a terminal
-    if (os.system("/opt/mosek/9.2/tools/platform/linux64x86/bin/lmgrd -c /opt/mosek/9.2/tools/platform/linux64x86/bin/mosek.lic -l lmgrd.log")==0):
-        os.system("/opt/mosek/9.2/tools/platform/linux64x86/bin/lmutil lmstat -c 27007@127.0.0.1 -a")
-    #  (2) definition of license
-    os.environ["MOSEKLM_LICENSE_FILE"] = '@jupyter-sop'
-
 import numpy as np
 import pandas as pd
 import csv
-#import docplex
 import datetime
 import copy
-import plotly
-import plotly.graph_objects as go
-import plotly.express as px
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from sklearn import linear_model
-import sys
-import time
-import datetime
 import seaborn as sb
 
 from Functions.f_multiResourceModels import *
 from Functions.f_optimization import *
-from Functions.f_optimModel_elec import *
-from Functions.f_InputScenario import *
-from Basic_functionalities.scenarios_ref_Fr import scenarioFr
+from scenarios_ref_Fr import scenarioFr
 
 #endregion
 

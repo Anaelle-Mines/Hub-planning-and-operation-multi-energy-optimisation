@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.interpolate import interp1d
-from Basic_functionalities import tech_eco_data
+from Data.Raw import tech_eco_data
 import pandas as pd
 
-inputPath='Data/Raw_Ana/'
-outputFolderFr='Data/output/Ref_wH2_Fr'
+inputPath='Data/Raw/'
+outputFolderFr='Data/output/Ref_Fr'
 
 nHours = 8760
 t = np.arange(1,nHours + 1)
@@ -18,14 +18,13 @@ nYears = len(yearList)
 
 scenarioPACA = {}
 
-#hourlyDemand_H2=[360,390,460,755]
 hourlyDemand_H2=interp1d(yearList[1:], [360 * (1 + 0.025) ** (k * yearStep) for k in np.arange(len(yearList[1:]))], fill_value=(360,755),bounds_error=False)
 
 scenarioPACA['resourceDemand'] =  pd.concat(
     (
         pd.DataFrame(data = { 
               'YEAR': year, 
-              'TIMESTAMP': t, # We add the TIMESTAMP so that it can be used as an index later. 
+              'TIMESTAMP': t, 
               'electricity': np.zeros(nHours), # Only considering H2 final demand
               'hydrogen': hourlyDemand_H2(year+yearStep/2)*np.ones(nHours),
               'gaz': np.zeros(nHours),
@@ -244,10 +243,8 @@ scenarioPACA['conversionTechs'] = pd.concat(scenarioPACA['conversionTechs'], axi
 scenarioPACA['storageTechs'] = []
 for k, year in enumerate(yearList[:-1]):
     tech = "Battery"
-    max_install_capacity = [0,5000,10000,77000]
-    # max_install_capacity = [0, 0, 0, 0]
-    max_install_power=[0,500,1000,7700]
-    # max_install_power = [0, 0, 0, 0]
+    max_install_capacity = [0,500,1000,7700]
+    max_install_power=[0,50,100,770]
     capex1, opex1, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 1h', hyp='ref', year=year+yearStep/2)
     capex4, opex4, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech + ' - 4h', hyp='ref', year=year+yearStep/2)
     capex_per_kWh = (capex4 - capex1) / 3
@@ -272,9 +269,7 @@ for k, year in enumerate(yearList[:-1]):
 
     tech = "tankH2_G"
     max_install_capacity = [0,10000,20000,30000]
-    # max_install_capacity = [0,0,0,0]
     max_install_power=[0,1000,2000,3000]
-    # max_install_power = [0, 0, 0, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioPACA['storageTechs'].append(
         pd.DataFrame(data={tech: 
@@ -295,9 +290,7 @@ for k, year in enumerate(yearList[:-1]):
     )
 
     tech = "saltCavernH2_G"
-    # max_install_capacity = [0,130000,130000,130000]
     max_install_capacity = [0, 0, 0, 0]
-    # max_install_power=[0,13000,13000,13000]
     max_install_power = [0, 0, 0, 0]
     capex, opex, lifespan = tech_eco_data.get_capex_new_tech_RTE(tech, hyp='ref', year=year+yearStep/2)
     scenarioPACA['storageTechs'].append(
@@ -327,7 +320,6 @@ scenarioPACA['carbonGoals'] = pd.DataFrame(data=np.linspace(974e6, 205e6, nYears
     index=yearList, columns=('carbonGoals',))
 
 impBiogasCap=np.linspace(0, 5e6, nYears)
-# impH2Cap=np.linspace(0, 30e6, nYears)
 scenarioPACA['maxImportCap'] = pd.concat(
     (
         pd.DataFrame(index=[year],data={
@@ -340,11 +332,10 @@ scenarioPACA['maxImportCap'] = pd.concat(
     )
 )
 
-# expH2Cap=np.linspace(0, 30e6, nYears)
 scenarioPACA['maxExportCap'] = pd.concat(
     (
         pd.DataFrame(index=[year],data={
-            'electricity': 0,#10e6,
+            'electricity': 0,
             'gazNat': 0,
             'gazBio': 0,
             'hydrogen': 0,
@@ -353,7 +344,7 @@ scenarioPACA['maxExportCap'] = pd.concat(
     )
 )
 
-scenarioPACA['gridConnection'] = pd.read_csv(inputPath+'CalendrierHTB_TIME.csv', sep=',', decimal='.', skiprows=0,
+scenarioPACA['gridConnection'] = pd.read_csv(inputPath+'calendrierHTB_TIME.csv', sep=',', decimal='.', skiprows=0,
                                 comment="#").set_index(["TIMESTAMP"])
 
 scenarioPACA['economicParameters'] = pd.DataFrame({

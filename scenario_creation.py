@@ -8,16 +8,14 @@ import datetime
 import copy
 import time
 
-from Basic_functionalities.scenarios_ref_PACA import scenarioPACA
-from Basic_functionalities.scenarios_2060_PACA import scenarioPACA2060
-from Basic_functionalities.scenarios_testPrix_PACA import scenarioPACAtest
-from Basic_functionalities import tech_eco_data
+from scenarios_ref_PACA import scenarioPACA
+from Data.Raw import tech_eco_data
 
 outputPath='Data/output/'
-inputPath='Data/Raw_Ana/'
+inputPath='Data/Raw/'
 outputFolderFr='Data/output/Ref_Fr'
 
-scenarioDict={'Ref':scenarioPACA,'test2060':scenarioPACA2060,'test':scenarioPACAtest}
+scenarioDict={'Ref':scenarioPACA}
 
 nHours = 8760
 t = np.arange(1,nHours + 1)
@@ -1354,6 +1352,7 @@ scenarioBM80['resourceImportPrices'] = pd.concat(
         }) for k, year in enumerate(yearList[1:])
     )
 )
+
 
 scenarioDict['BM_80']=scenarioBM80
 #endregion

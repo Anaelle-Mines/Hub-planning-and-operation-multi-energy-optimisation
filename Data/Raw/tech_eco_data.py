@@ -172,7 +172,7 @@ def get_capex_new_tech_RTE(tech, hyp='ref', year=2020, var=None):
 			opex = {
 				'high': interp1d(years, [80, 65, 60, 55],fill_value=(80,55),bounds_error=False),
 				'low': interp1d(years,  [80, 54, 38, 28],fill_value=(80,28),bounds_error=False),
-				'ref': interp1d(years,  [80, 58, 47, 36],fill_value=(80,26),bounds_error=False),
+				'ref': interp1d(years,  [80, 58, 47, 36],fill_value=(80,36),bounds_error=False),
 			}
 			life = {
 				'high':  interp1d(years, [20, 25, 30, 40],fill_value=(20,40),bounds_error=False),
@@ -217,7 +217,7 @@ def get_capex_new_tech_RTE(tech, hyp='ref', year=2020, var=None):
 	elif tech == "Solar":
 			capex = {
 				'ref':  interp1d(years, [747, 597, 517, 477],fill_value=(0,477),bounds_error=False),
-				'low':  interp1d(years, [747, 557, 497, 427],fill_value=(0,127),bounds_error=False),
+				'low':  interp1d(years, [747, 557, 497, 427],fill_value=(0,427),bounds_error=False),
 				'high': interp1d(years, [747, 612, 562, 527],fill_value=(0,527),bounds_error=False),
 			}
 			opex = {
@@ -234,8 +234,8 @@ def get_capex_new_tech_RTE(tech, hyp='ref', year=2020, var=None):
 	elif tech == "electrolysis_AEL":
 			capex = {
 				'ref':  interp1d(years, [1313, 641, 574, 507],fill_value=(1313,440),bounds_error=False),
-				'high': interp1d(years,[1313]+[i*1.15 for i in [641, 574, 507]],fill_value=(1313,543),bounds_error=False),
-				'low': interp1d(years, [1313]+[i*0.85 for i in [641, 574, 507]], fill_value=(1313, 440), bounds_error=False),
+				'high': interp1d(years,[1313]+[i*1.15 for i in [641, 574, 507]],fill_value=(1313,507),bounds_error=False),
+				'low': interp1d(years, [1313]+[i*0.85 for i in [641, 574, 507]], fill_value=(1313, 374), bounds_error=False),
 
 			}
 			opex = {

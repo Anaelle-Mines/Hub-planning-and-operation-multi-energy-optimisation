@@ -14,7 +14,7 @@ outputPath='../Data/output/'
 ScenarioName='Ref'
 outputFolderFr=outputPath+ScenarioName+'_Fr'
 
-def plot_monotone(outputFolder='Data/output/'):
+def plot_monotone(outputFolder='../Data/output/'):
 
     marketPrice = pd.read_csv(outputFolder+'/marketPrice.csv').set_index(['YEAR_op', 'TIMESTAMP'])
     marketPrice['OldPrice_NonAct'].loc[marketPrice['OldPrice_NonAct'] > 400] = 400
@@ -60,6 +60,5 @@ def plot_monotone(outputFolder='Data/output/'):
     plt.show()
 
     return
-
 
 plot_monotone(outputFolderFr)

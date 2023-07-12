@@ -11,26 +11,18 @@ from pyomo.environ import value
 
 from Functions.f_multiResourceModels import *
 from Functions.f_optimization import *
-from Functions.f_InputScenario import *
-# from Basic_functionalities.scenario_creation import scenarioDict
-# from Basic_functionalities.scenario_creation_REsensibility import scenarioDict_RE
-from Basic_functionalities.scenarios_ISGT import *
-# pd.set_option('display.max_columns', 500)
+from scenario_creation import scenarioDict
+# from scenario_creation_REsensibility import scenarioDict_RE
 
 outputPath='Data/output/'
 solver= 'mosek' ## no need for solverpath with mosek.
 
-# ScenarioList= ['Export']#['Ref', 'EnR', 'SmrOnly','conv_SmrOnly', 'Grid', 'Re_x2', 'Re_inf', 'BM_100','BM_80','Cavern','CavernREinf','woSMR_2030', 'woSMR_2040', 'woSMR_2050', 'CO2_10', 'CO2_100','Free','TC120'] #'test2060', 'test',Export
-# ScenarioList=[ 'Caverns_CCS10', 'Caverns_CCS10_woSMR', 'CavernREinf_CCS10', 'CavernREinf_CCS10_woSMR'] #'Re_inf_CCS10', 'Re_inf_CCS10_woSMR',
-# scenarioDict=scenarioDict_RE
-# ScenarioList=[ 'scenario2_tdemi', 'scenario2_tdouble']#['scenario1','scenario2','scenario3','scenario4','scenario3_d10', 'scenario4_d10', 'scenario3_d50', 'scenario4_d50', 'scenario3_d250', 'scenario4_d250', 'scenario3_d500', 'scenario4_d500', 'scenario1_tdemi', 'scenario1_tdouble', 'scenario2_tdemi', 'scenario2_tdouble', 'scenario3_tdemi', 'scenario3_tdouble', 'scenario4_tdemi', 'scenario4_tdouble']
-# scenarioDict=scenarioDict_ISGT
-ScenarioList=['Ref','Re_x2', 'Re_inf']
+ScenarioList=['Ref'] #['EnR', 'SmrOnly','conv_SmrOnly', 'Grid', 'Re_x2', 'Re_inf', 'BM_100','BM_80','Cavern','CavernREinf','woSMR_2030', 'woSMR_2040', 'woSMR_2050', 'CO2_10', 'CO2_100','TC120']
 
 for ScenarioName in ScenarioList :
 
-    outputFolder=outputPath+'ISGT/'+ScenarioName
-    outputFolderFr=outputPath+'Ref_wH2_Fr'
+    outputFolder=outputPath+ScenarioName
+    outputFolderFr=outputPath+'Ref_Fr'
 
     #region PACA calculation
 
@@ -60,7 +52,7 @@ for ScenarioName in ScenarioList :
     Delta=(production_df.sum(axis=0) - areaConsumption_df.sum(axis=0))
     abs(Delta).max()
     print("Vérification équilibre O/D : \n",Delta)
-    print("Production par énergie (TWh) : \n",production_df.sum(axis=0)/10**6) ### energies produites TWh (ne comprends pas ce qui est consommé par le système)
+    print("Production par énergie (TWh) : \n",production_df.sum(axis=0)/10**6) ### Energy that is getting out of the system (doesn't take into account the enrgy that is produced and then consumed by the capacities of the model)
 
 
     ### save results
@@ -78,5 +70,3 @@ for ScenarioName in ScenarioList :
 
     #endregion
 
-    # importation=pd.read_csv(outputFolder+'/importation_Dvar.csv').groupby(['YEAR_op','RESOURCES']).sum()
-    # localEnR=pd.read_csv(outputFolder+'/power_Dvar.csv').groupby(['YEAR_op','TECHNOLOGIES']).sum().loc[(slice(None),['WindOnShore','WindOffShore_flot','Solar']),'power_Dvar'].reset_index().groupby('YEAR_op').sum()
