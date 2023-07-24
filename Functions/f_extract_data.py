@@ -4,7 +4,7 @@ import csv
 import copy
 from Functions.f_multiResourceModels import loadScenario
 
-def extract_costs(scenario,outputFolder='Data/output/'):
+def extract_costs(scenario,outputFolder='../Data/output/'):
 
     v_list = ['capacityInvest_Dvar', 'transInvest_Dvar', 'capacity_Pvar', 'capacityDel_Pvar', 'capacityDem_Dvar',
               'energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar',
@@ -133,7 +133,7 @@ def extract_costs(scenario,outputFolder='Data/output/'):
 
     return df
 
-def extract_energy(scenario,outputFolder='Data/output'):
+def extract_energy(scenario,outputFolder='../Data/output'):
     v_list = [ 'capacity_Pvar','energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar','importation_Dvar','carbon_Pvar',
              'powerCosts_Pvar', 'capacityCosts_Pvar','importCosts_Pvar', 'storageCosts_Pvar', 'turpeCosts_Pvar','carbonCosts_Pvar', 'exportation_Dvar']
     Variables = {v: pd.read_csv(outputFolder + '/' + v + '.csv').drop(columns='Unnamed: 0') for v in v_list}
@@ -233,7 +233,7 @@ def extract_energy(scenario,outputFolder='Data/output'):
 
     return df
 
-def extract_capa(scenario,outputFolder='Data/output'):
+def extract_capa(scenario,outputFolder='../Data/output'):
     v_list = [ 'capacity_Pvar','energy_Pvar', 'power_Dvar', 'storageConsumption_Pvar', 'storageIn_Pvar', 'storageOut_Pvar','importation_Dvar','carbon_Pvar',
              'powerCosts_Pvar', 'capacityCosts_Pvar','importCosts_Pvar', 'storageCosts_Pvar', 'turpeCosts_Pvar','carbonCosts_Pvar','exportation_Dvar']
     Variables = {v: pd.read_csv(outputFolder + '/' + v + '.csv').drop(columns='Unnamed: 0') for v in v_list}
