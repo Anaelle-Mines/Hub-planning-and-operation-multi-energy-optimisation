@@ -1,4 +1,4 @@
 cd Models
 python runFrance.py
-python runPACA.py Ref Re_x2 Re_inf
+python runPACA.py Ref conv_SmrOnly SmrOnly Re_x2 Re_inf BM_80 BM_100 woSMR_2030 woSMR_2040 woSMR_2050 CO2_10 CO2_100 Caverns CavernREinf Re_inf_woSMR Re_inf_CCS10 Re_inf_CCS10_woSMR Re_inf_TC200 Re_inf_TC200_woSMR Caverns_woSMR Caverns_CCS10 Caverns_CCS10_woSMR Caverns_TC200 Caverns_TC200_woSMR CavernREinf_woSMR CavernREinf_CCS10 CavernREinf_CCS10_woSMR CavernREinf_TC200 CavernREinf_TC200_woSMR
 cd..

@@ -1,19 +1,69 @@
-
+#region Importation of modules
 import os
-os.sys.path.append(r'../')
-from Functions.f_extract_data import extract_costs
-from Functions.f_graphicTools import plot_carbonCosts
-from Models.scenario_creation import scenarioDict
+import numpy as np
+import pandas as pd
+import csv
+import matplotlib.pyplot as plt
 
-#First : execute runPACA.py Ref woSMR_2030 woSMR_2040 woSMR_2050
+#endregion
+
+#First : execute ModelFrance.py
 
 outputPath='../Data/output/'
 
-dico_costs={}
-scenarioList=['Ref','woSMR_2030', 'woSMR_2040', 'woSMR_2050']
-scenarioNames=['Ref','wo SMR from 2030','wo SMR from 2040','wo SMR from 2050']
-for s in scenarioList:
-    outputFolder=outputPath+s+'_PACA'
-    dico_costs[s]=extract_costs(scenarioDict[s],outputFolder)
+ScenarioName='Ref'
+outputFolderFr=outputPath+ScenarioName+'_Fr'
 
-plot_carbonCosts(dico_costs,scenarioNames)
+def plot_monotone(outputFolder='../Data/output/'):
+
+    marketPrice = pd.read_csv(outputFolder+'/marketPrice.csv').set_index(['YEAR_op', 'TIMESTAMP'])
+    marketPrice['OldPrice_NonAct'].loc[marketPrice['OldPrice_NonAct'] > 400] = 400
+    prices2013=pd.read_csv('../Data/Raw/electricity-grid-price-2013.csv').set_index('TIMESTAMP').fillna(0)
+
+    YEAR=marketPrice.index.get_level_values('YEAR_op').unique().values
+    YEAR.sort()
+
+    col = plt.cm.tab20c
+    plt.figure(figsize=(6, 4))
+
+    for k, yr in enumerate(YEAR) :
+        MonotoneNew = marketPrice.OldPrice_NonAct.loc[(yr, slice(None))].value_counts(bins=100)
+        MonotoneNew.sort_index(inplace=True, ascending=False)
+        NbVal = MonotoneNew.sum()
+        MonotoneNew_Cumul = []
+        MonotoneNew_Price = []
+        val = 0
+        for i in MonotoneNew.index:
+            val = val + MonotoneNew.loc[i]
+            MonotoneNew_Cumul.append(val / NbVal * 100)
+            MonotoneNew_Price.append(i.right)
+
+        plt.plot(MonotoneNew_Cumul, MonotoneNew_Price, color=col(k*4), label='Prices '+ str(yr))
+
+    MonotoneReal = prices2013.Prices.value_counts(bins=100)
+    MonotoneReal.sort_index(inplace=True, ascending=False)
+    NbVal = MonotoneReal.sum()
+    MonotoneReal_Cumul = []
+    MonotoneReal_Price = []
+    val = 0
+    for i in MonotoneReal.index:
+        val = val + MonotoneReal.loc[i]
+        MonotoneReal_Cumul.append(val / NbVal * 100)
+        MonotoneReal_Price.append(i.right)
+    plt.plot(MonotoneReal_Cumul, MonotoneReal_Price,'--',color='black', label='Reals prices 2013 ')
+
+    #get handles and labels
+    handles, labels = plt.gca().get_legend_handles_labels()
+    #specify order of items in legend
+    order = [3,2,1,0,4]
+    # Put a legend to the right of the current axi
+    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
+    plt.xlabel('% of time')
+    plt.ylabel('Electricity price (€/MWh)')
+    # plt.title('Electricity prices monotone')
+    plt.savefig('../Data/output/Figure10.png')
+    plt.show()
+
+    return
+
+plot_monotone(outputFolderFr)

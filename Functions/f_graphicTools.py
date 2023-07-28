@@ -9,7 +9,7 @@ import seaborn as sb
 from Functions.f_multiResourceModels import loadScenario
 
 
-def plot_costs(df,outputFolder='../Data/output/',comparaison=False):
+def plot_costs_detailed(df,outputFolder='../Data/output/',comparaison=False):
 
     YEAR=df[list(df.keys())[0]].index.values
     YEAR.sort()
@@ -129,17 +129,17 @@ def plot_costs(df,outputFolder='../Data/output/',comparaison=False):
 
     if comparaison==False:
         plt.plot(x,meanCosts,marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 mean Price',zorder=3)
-        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted mean price',zorder=2)
+        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted average price',zorder=2)
     else:
         if n==1:
-            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 mean Price',zorder=2)
+            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 average price',zorder=2)
             # plt.axhline(y=horizonMean[0],color='gray',linestyle='--',label='Mean price over horizon',alpha=0.3,zorder=2)
             # plt.text(-(width+0.05)*n,horizonMean[0], 'Base')
             # plt.axhline(y=horizonMean[1],color='gray',linestyle='--',alpha=0.3,zorder=2)
             # plt.text(-(width+0.05)*n, horizonMean[1], 'AEL Only')
         else :
             for i in np.arange(len(meanCosts)):
-                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 mean Price' if i==0 else "",zorder=2)
+                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price' if i==0 else "",zorder=2)
                 # plt.axhline(y=horizonMean[i],color='gray',linestyle='--',alpha=0.3, label='Mean over horizon' if i==0 else "",zorder=2)
                 # plt.text(-(width+0.05)*n, horizonMean[i]-0.3 if caseNames[i]=='Base' else horizonMean[i]+0.1, caseNames[i],zorder=2)
 
@@ -156,7 +156,143 @@ def plot_costs(df,outputFolder='../Data/output/',comparaison=False):
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(outputFolder+'/H2 costs.png')
-    plt.savefig('../Plots'+'/H2 costs.png')
+    plt.show()
+
+    return
+
+def plot_costs(df,outputFolder='../Data/output/',comparaison=False):
+
+    YEAR=df[list(df.keys())[0]].index.values
+    YEAR.sort()
+    dy=YEAR[1]-YEAR[0]
+    y0=YEAR[0]-dy
+
+    fig, ax = plt.subplots(figsize=(7,4.3))
+    width= 0.30
+    labels=list(df['SMR'].index)
+    x = np.arange(len(labels))
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
+
+    parameters={'axes.labelsize': 12,
+                'xtick.labelsize': 12,
+                'ytick.labelsize': 12,
+              'figure.titlesize': 15,
+                'legend.fontsize':12}
+    plt.rcParams.update(parameters)
+
+    B=list(df.keys())
+    B_nb=len(B)
+    if B_nb%2>0:
+        n=B_nb//2
+        X=np.sort([-i*(width+0.05)  for i in np.arange(1,n+1)]+[0]+[i*(width+0.05)  for i in np.arange(1,n+1)])
+    else:
+        n=B_nb/2
+        X=np.sort([-(width/2+0.025)-i*(width+0.05) for i in np.arange(n)]+[(width/2+0.025)+i*(width+0.05) for i in np.arange(n)])
+        M=[X[i:i+2].mean() for i in np.arange(0,int(n+1),2)]
+
+    meanCosts=[]
+    horizonMean=[]
+    c=0
+    if comparaison==False:
+        meanCosts = sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B)/sum((df[k]['Prod']*30) for k in B)
+        horizonMean=sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B).sum()/(sum((df[k]['Prod']*30) for k in B).sum())
+    else :
+        if B_nb % 2 > 0:
+            meanCosts=sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[0:2])/sum((df[k]['Prod']*30) for k in B[0:2])
+            horizonMean.append(sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[0:2]).sum()/(sum((df[k]['Prod']*30) for k in B[0:2]).sum()))
+            horizonMean.append(df[B[-1]][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1).sum()/(df[B[-1]]['Prod']*30).sum())
+        else:
+            for i in np.arange(0,int(n+1),2):
+                meanCosts.append(sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[i:i+2])/sum((df[k]['Prod']*30) for k in B[i:i+2]))
+                horizonMean.append(sum(df[k][['powerCosts', 'capacityCosts', 'capexElec', 'importElec','importGas', 'storageElec', 'storageH2', 'carbon','TURPE']].sum(axis=1) for k in B[i:i+2]).sum() / (sum((df[k]['Prod'] * 30) for k in B[i:i+2]).sum()))
+                c=c+1
+
+
+    # Create light blue Bars
+    a={}
+    for i in np.arange(B_nb):
+        a[i]=list((df[B[i]]['capacityCosts']/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], a[i], width, color=col(1),label="Fixed costs" if i==0 else "",zorder=2)
+
+    # Create dark blue Bars
+    aa={}
+    for i in np.arange(B_nb):
+        aa[i]=list((df[B[i]]['powerCosts']/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], aa[i], width,bottom=a[i], color=col(0),label="Variable costs" if i==0 else "",zorder=2)
+
+    # Create brown Bars
+    b={}
+    for i in np.arange(B_nb):
+        b[i]=list((df[B[i]]['importGas']/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], b[i], width, bottom=[i + j for i, j in zip(a[i],aa[i])], color=colBis(9),label="Gas feedstock" if i==0 else "",zorder=2)
+
+    # Create green Bars
+    c={}
+    for i in np.arange(B_nb):
+        c[i]=list(((df[B[i]]['capexElec']+df[B[i]]['importElec']+df[B[i]]['TURPE'])/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], c[i], width, bottom=[i + j + k for i, j, k in zip(a[i],aa[i],b[i])], color=col(9),label="Electricity" if i==0 else "",zorder=2)
+
+    # Create purple Bars
+    f={}
+    for i in np.arange(B_nb):
+        f[i]=list(((df[B[i]]['storageH2']+df[B[i]]['storageElec'])/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], f[i], width,   bottom=[i + j + k + l  for i, j, k, l, in  zip(a[i],aa[i],b[i],c[i])], color=colBis(17),label="Storage capacity" if i==0 else "",zorder=2)
+
+    # Create grey Bars
+    h={}
+    for i in np.arange(B_nb):
+        h[i]=list((df[B[i]]['carbon']/(df[B[i]]['Prod']*30)).fillna(0))
+        plt.bar(x + X[i], h[i], width,   bottom=[i + j + k + l + m  for i, j, k, l, m, in zip(a[i],aa[i],b[i],c[i],f[i])], color=col(18),label="Carbon tax" if i==0 else "",zorder=2)
+
+    s= {}
+    maxi=[]
+    for i in np.arange(B_nb):
+        for j in x:
+            ax.text((x+X[i])[j],[k + l + m + n + o + p + 0.05 for k, l, m, n, o, p,  in zip(a[i],aa[i],b[i],c[i],f[i],h[i])][j],B[i],ha='center',rotation=65)
+        s[i]=[k + l + m + n + o + p   for k, l, m, n, o, p,  in zip(a[i],aa[i],b[i],c[i],f[i],h[i])]
+        s[i] = [0 if np.isnan(item) else item for item in s[i]]
+        s[i] = [0 if item==np.inf else item for item in s[i]]
+        s[i] = [0 if item==-np.inf else item for item in s[i]]
+        print (B[i],'=',s[i])
+        maxi.append(np.max(s[i]))
+
+    print("H2 mean Cost =\n",meanCosts)
+    print("H2 mean cost over horizon = ", meanCosts.mean())
+
+    if comparaison==False:
+        plt.plot(x,meanCosts,marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price',zorder=3)
+        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted average price',zorder=2)
+    else:
+        if n==1:
+            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 average price',zorder=2)
+            # plt.axhline(y=horizonMean[0],color='gray',linestyle='--',label='Mean price over horizon',alpha=0.3,zorder=2)
+            # plt.text(-(width+0.05)*n,horizonMean[0], 'Base')
+            # plt.axhline(y=horizonMean[1],color='gray',linestyle='--',alpha=0.3,zorder=2)
+            # plt.text(-(width+0.05)*n, horizonMean[1], 'AEL Only')
+        else :
+            for i in np.arange(len(meanCosts)):
+                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price' if i==0 else "",zorder=2)
+                # plt.axhline(y=horizonMean[i],color='gray',linestyle='--',alpha=0.3, label='Mean over horizon' if i==0 else "",zorder=2)
+                # plt.text(-(width+0.05)*n, horizonMean[i]-0.3 if caseNames[i]=='Base' else horizonMean[i]+0.1, caseNames[i],zorder=2)
+
+    ax.set_ylabel('LCOH (€/kgH$_2$)')
+    x=list(x)
+    plt.xticks(x, ['2020-2030','2030-2040','2040-2050','2050-2060'])
+
+    ax.set_ylim([0,np.max(maxi)+1])
+    # ax.set_title("Hydrogen production costs")
+    plt.grid(axis='y',alpha=0.5,zorder=1)
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.63, box.height])
+    #get handles and labels
+    handles, labels = ax.get_legend_handles_labels()
+    #specify order of items in legend
+    order = [0,1,6,5,4,3,2]
+    # Put a legend to the right of the current axis
+    ax.legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig('../Data/output'+'/Figure6.png')
     plt.show()
 
     return
@@ -244,7 +380,9 @@ def plot_capacity(outputFolder='../Data/output/',LoadFac=False):
             if capa.loc[(y,'WindOffShore_flot'),'capacity_Pvar'] > 100:
                 ax[1].text((x)[i], l8[i]+l9[i]+l10[i]/2, str(round(EnR_loadFactor[y]['WindOffShore_flot'] * 100)) + '%', ha='center')
 
-    ax[0].set_ylim([0,max(max([(n1,n2) for n1,n2 in zip([i+j+k for i,j,k in zip(l2,l2,l3)],l7)]))+100])
+
+
+    ax[0].set_ylim([0,max(max([(n1,n2) for n1,n2 in zip([i+j+k for i,j,k in zip(l2,l2,l3)],l7)]))+200])
     ax[0].grid(axis='y',alpha=0.5,zorder=1)
     ax[1].set_ylim([0,max([i+j+k for i,j,k in zip(l8,l9,l10)])+100])
     ax[1].grid(axis='y',alpha=0.5,zorder=1)
@@ -259,15 +397,23 @@ def plot_capacity(outputFolder='../Data/output/',LoadFac=False):
     # Shrink current axis by 20%
     box = ax[0].get_position()
     ax[0].set_position([box.x0, box.y0, box.width * 0.73, box.height*0.95])
+    #get handles and labels
+    handles, labels = ax[0].get_legend_handles_labels()
+    #specify order of items in legend
+    order = [3,2,1,0]
     # Put a legend to the right of the current axis
-    ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax[0].legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
     # Shrink current axis by 20%
     box = ax[1].get_position()
     ax[1].set_position([box.x0, box.y0, box.width * 0.73, box.height*0.95])
+    #get handles and labels
+    handles, labels = ax[1].get_legend_handles_labels()
+    #specify order of items in legend
+    order = [2,1,0]
     # Put a legend to the right of the current axis
-    ax[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-    plt.savefig(outputFolder+'/Evolution mix prod.png')
+    ax[1].legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
+    
+    plt.savefig('../Data/output'+'/Figure4.png')
     plt.show()
 
     def monthly_average(df):
@@ -382,9 +528,13 @@ def plot_energy(outputFolder='../Data/output/'):
     # Shrink current axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.72, box.height])
-    # Put a legend to the right of the current axis
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(outputFolder+'/H2 production.png')
+    #get handles and labels
+    handles, labels = ax.get_legend_handles_labels()
+    #specify order of items in legend
+    order = [4,5,2,1,0,3]
+    # Put a legend to the right of the current axi
+    ax.legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig('../Data/output'+'/Figure5.png')
     plt.show()
 
     return df
@@ -448,13 +598,17 @@ def plot_compare_energy_and_carbon(dico_ener, scenarioNames, outputPath='../Data
     ax[1].set_position([box.x0-0.05, box.y0, box.width * 0.9, box.height])
     box = ax[2].get_position()
     ax[2].set_position([box.x0-0.1, box.y0, box.width * 0.9, box.height])
+    #get handles and labels
+    handles, labels = ax[2].get_legend_handles_labels()
+    #specify order of items in legend
+    order = [3,4,1,0,2]
     # Put a legend to the right of the current axis
-    ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax[2].legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
     # box = ay.get_position()
     # ay.set_position([box.x0, box.y0, box.width * 0.815, box.height*0.8])
     # Put a legend to the right of the current axis
     # ay.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(outputPath + '/Comparison energy.png')
+    plt.savefig('../Data/output'+'/Figure7.png')
     plt.show()
 
     fig,ax=plt.subplots(1,1,figsize=(4,2.5))
@@ -477,13 +631,16 @@ def plot_compare_energy_and_carbon(dico_ener, scenarioNames, outputPath='../Data
     # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # Put a legend to the right of the current axis
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.legend()
-    plt.savefig(outputPath + '/Comparison carbon.png')
+    handles, labels = plt.gca().get_legend_handles_labels()
+    #specify order of items in legend
+    order = [2,1,0]
+    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
+    plt.savefig('../Data/output'+'/Figure8.png')
     plt.show()
 
     return
 
-def  plot_costs2050(df,outputFolder='../Data/output/',comparaison=False):
+def  plot_costs2050_detailed(df,outputFolder='../Data/output/',comparaison=False):
 
     caseNames=['BM=80€','BM=90€','BM=100€']
 
@@ -604,17 +761,17 @@ def  plot_costs2050(df,outputFolder='../Data/output/',comparaison=False):
 
     if comparaison==False:
         plt.plot(x,meanCosts,marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 mean Price',zorder=3)
-        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted mean price',zorder=2)
+        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted average price',zorder=2)
     else:
         if n==1:
-            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 mean Price',zorder=2)
+            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 average price',zorder=2)
             # plt.axhline(y=horizonMean[0],color='gray',linestyle='--',label='Mean price over horizon',alpha=0.3,zorder=2)
             # plt.text(-(width+0.05)*n,horizonMean[0], 'Base')
             # plt.axhline(y=horizonMean[1],color='gray',linestyle='--',alpha=0.3,zorder=2)
             # plt.text(-(width+0.05)*n, horizonMean[1], 'AEL Only')
         else :
             for i in np.arange(len(meanCosts)):
-                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 mean Price' if i==0 else "",zorder=2)
+                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price' if i==0 else "",zorder=2)
                 # plt.axhline(y=horizonMean[i],color='gray',linestyle='--',alpha=0.3, label='Mean over horizon' if i==0 else "",zorder=2)
                 # plt.text(-(width+0.05)*n, horizonMean[i]-0.3 if caseNames[i]=='Base' else horizonMean[i]+0.1, caseNames[i],zorder=2)
 
@@ -631,6 +788,147 @@ def  plot_costs2050(df,outputFolder='../Data/output/',comparaison=False):
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig(outputFolder+'/H2 costs.png')
+    plt.show()
+
+    return
+
+def  plot_costs2050(df,outputFolder='../Data/output/',comparaison=False):
+
+    caseNames=['BM=80€','BM=90€','BM=100€']
+
+    YEAR=df[list(df.keys())[0]].index.values
+    YEAR.sort()
+    # dy=YEAR[1]-YEAR[0]
+    # y0=YEAR[0]-dy
+
+    fig, ax = plt.subplots(figsize=(7.5,5))
+    width= 0.2
+    labels=list(df['SMR BM=90€'].index)
+    x = np.arange(len(labels))
+    col=plt.cm.tab20c
+    colBis=plt.cm.tab20b
+    #code couleur Mines
+    # dbl='#005E9E'
+    # lbl='#2BA9FF'
+    # rd='#fca592'
+    # ye='#F8B740'
+    # br='#e1a673'
+    # gr='#cccccc'
+    parameters={'axes.labelsize': 13,
+                'xtick.labelsize': 13,
+                'ytick.labelsize': 13,
+                'legend.fontsize':13}
+    plt.rcParams.update(parameters)
+
+    B=list(df.keys())
+    B_nb=len(B)
+    if B_nb%2>0:
+        n=B_nb//2
+        X=np.sort([-i*(width+0.05)  for i in np.arange(1,n+1)]+[0]+[i*(width+0.05) for i in np.arange(1,n+1)])
+    else:
+        n=B_nb/2
+        X=np.sort([-(width/2+0.025)-i*(width+0.05) for i in np.arange(n)]+[(width/2+0.025)+i*(width+0.05) for i in np.arange(n)])
+        M=[X[i:i+2].mean() for i in np.arange(0,int(n+2),2)]
+
+    meanCosts=[]
+    horizonMean=[]
+    c=0
+    if comparaison==False:
+        meanCosts = sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B)/sum((df[k]['Prod']*30) for k in B)
+        horizonMean=sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B).sum()/(sum((df[k]['Prod']*30) for k in B).sum())
+    else :
+        if B_nb % 2 > 0:
+            meanCosts=sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[0:2])/sum((df[k]['Prod']*30) for k in B[0:2])
+            horizonMean.append(sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[0:2]).sum()/(sum((df[k]['Prod']*30) for k in B[0:2]).sum()))
+            horizonMean.append(df[B[-1]][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1).sum()/(df[B[-1]]['Prod']*30).sum())
+        else:
+            for i in np.arange(0,int(n+2),2):
+                meanCosts.append(sum(df[k][['powerCosts','capacityCosts','capexElec','importElec','importGas','storageElec','storageH2','carbon','TURPE']].sum(axis=1) for k in B[i:i+2])/sum((df[k]['Prod']*30) for k in B[i:i+2]))
+                horizonMean.append(sum(df[k][['powerCosts', 'capacityCosts', 'capexElec', 'importElec','importGas', 'storageElec', 'storageH2', 'carbon','TURPE']].sum(axis=1) for k in B[i:i+2]).sum() / (sum((df[k]['Prod'] * 30) for k in B[i:i+2]).sum()))
+                c=c+1
+
+    # Create light blue Bars
+    a={}
+    for i in np.arange(B_nb):
+        a[i]=list(df[B[i]]['capacityCosts']/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], a[i], width, color=col(1),label="Fixed Costs" if i==0 else "",zorder=2)
+
+    # Create dark blue Bars
+    aa={}
+    for i in np.arange(B_nb):
+        aa[i]=list(df[B[i]]['powerCosts']/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], aa[i], width,bottom=a[i], color=col(0),label="Variable Costs" if i==0 else "",zorder=2)
+
+    # Create brown Bars
+    b={}
+    for i in np.arange(B_nb):
+        b[i]=list(df[B[i]]['importGas']/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], b[i], width, bottom=[i + j for i, j in zip(a[i],aa[i])], color=colBis(9),label="Gas feedstock" if i==0 else "",zorder=2)
+
+    # Create green Bars
+    c={}
+    for i in np.arange(B_nb):
+        c[i]=list((df[B[i]]['capexElec']+df[B[i]]['importElec']+df[B[i]]['TURPE'])/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], c[i], width, bottom=[i + j + k for i, j, k in zip(a[i],aa[i],b[i])], color=col(9),label="Electricity" if i==0 else "",zorder=2)
+
+    # Create purple Bars
+    f={}
+    for i in np.arange(B_nb):
+        f[i]=list((df[B[i]]['storageH2']+df[B[i]]['storageElec'])/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], f[i], width,   bottom=[i + j + k + l  for i, j, k, l in  zip(a[i],aa[i],b[i],c[i])], color=colBis(17),label="Storage capacity" if i==0 else "",zorder=2)
+
+    # Create grey Bars
+    h={}
+    for i in np.arange(B_nb):
+        h[i]=list(df[B[i]]['carbon']/(df[B[i]]['Prod']*30))
+        plt.bar(x + X[i], h[i], width,   bottom=[i + j + k + l + m  for i, j, k, l, m in zip(a[i],aa[i],b[i],c[i],f[i])], color=col(18),label="Carbon tax" if i==0 else "",zorder=2)
+
+    s= {}
+    for i in np.arange(B_nb):
+        for j in x:
+            ax.text((x+X[i])[j],[k + l + m + n + o + p + 0.05 for k, l, m, n, o, p in zip(a[i],aa[i],b[i],c[i],f[i],h[i])][j],B[i][:3],ha='center',rotation=60,fontsize=11)
+        s[i]=[k + l + m + n + o + p  for k, l, m, n, o, p in zip(a[i],aa[i],b[i],c[i],f[i],h[i])]
+        print (B[i],'=',s[i])
+
+    print("H2 mean Cost =\n",meanCosts)
+    # print("H2 mean cost over horizon = ", meanCosts.mean())
+
+    if comparaison==False:
+        plt.plot(x,meanCosts,marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price',zorder=3)
+        plt.axhline(y=horizonMean,color='gray',linestyle='--',alpha=0.3,label='Weighted average price',zorder=2)
+    else:
+        if n==1:
+            plt.plot(x-0.025-width/2, meanCosts, marker='D', color='none', markerfacecolor='None', markeredgecolor='black',markersize=6, markeredgewidth=1.5, label='H2 average price',zorder=2)
+            # plt.axhline(y=horizonMean[0],color='gray',linestyle='--',label='Mean price over horizon',alpha=0.3,zorder=2)
+            # plt.text(-(width+0.05)*n,horizonMean[0], 'Base')
+            # plt.axhline(y=horizonMean[1],color='gray',linestyle='--',alpha=0.3,zorder=2)
+            # plt.text(-(width+0.05)*n, horizonMean[1], 'AEL Only')
+        else :
+            for i in np.arange(len(meanCosts)):
+                plt.plot(x+M[i],meanCosts[i],marker='D',color='none',markerfacecolor='None',markeredgecolor='black',markersize=6,markeredgewidth=1.5,label='H2 average price' if i==0 else "",zorder=2)
+                if i>0:
+                    plt.axvline(x+M[i]-width-0.025*2,color='gray',linestyle='--',alpha=0.3,zorder=2)
+                plt.text(x+M[i],6,caseNames[i],zorder=2,ha='center',fontsize=14)
+                # plt.axhline(y=horizonMean[i],color='gray',linestyle='--',alpha=0.3, label='Mean over horizon' if i==0 else "",zorder=2)
+                # plt.text(-(width+0.05)*n, horizonMean[i]-0.3 if caseNames[i]=='Base' else horizonMean[i]+0.1, caseNames[i],zorder=2)
+
+    ax.set_ylabel('Costs (€/kgH$_2$)')
+    x=list(x)
+    plt.xticks(x, ['2050-2060'])
+    m=max(s.values())
+    ax.set_ylim([0,np.round(m[0])+2])
+    # ax.set_title("Hydrogen production costs")
+    plt.grid(axis='y',alpha=0.5,zorder=1)
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width*0.68 , box.height])
+    #get handles and labels
+    handles, labels = ax.get_legend_handles_labels()
+    #specify order of items in legend
+    order = [0,6,5,4,3,2,1]
+    # Put a legend to the right of the current axis
+    ax.legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig(outputFolder+'/Figure9.png')
     plt.show()
 
     return
@@ -690,7 +988,7 @@ def plot_carbonCosts(dico,scenarioNames,outputPath='../Data/output/'):
     ax.set_position([box.x0, box.y0, box.width * 0.72, box.height])
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig(outputPath + '/Comparaison carbon.png')
+    plt.savefig('../Data/output'+'/Figure11.png')
     plt.show()
 
     return
@@ -772,11 +1070,15 @@ def plot_H2Mean2050(scenario,outputFolder='../Data/output/'):
     # Shrink all axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0+0.03, box.width * 0.73, box.height])
-
-    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    #get handles and labels
+    handles, labels = ax.get_legend_handles_labels()
+    #specify order of items in legend
+    order = [3,2,1,0,4,5]
+    # Put a legend to the right of the current axis
+    ax.legend([handles[idx] for idx in order],[labels[idx] for idx in order],loc='upper left', bbox_to_anchor=(1, 1))
     ax.set_xlabel('Week')
 
-    plt.savefig(outputFolder+'/Gestion H2 2050.png')
+    plt.savefig('../Data/output'+'/Figure12.png')
     plt.show()
 
     return
@@ -833,7 +1135,7 @@ def plot_total_co2_emissions_and_flexSMR(dico_costs,scenarioNames,labels, legend
     ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5))
     plt.grid(axis='y',alpha=0.5, zorder=1)
 
-    plt.savefig(outputPath+'/Cumul carbon and flex.png')
+    plt.savefig('../Data/output'+'/Figure13.png')
     plt.show()
 
     parameters={'axes.labelsize': 11,
