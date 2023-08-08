@@ -11,5 +11,5 @@ outputPath='../Data/output/'
 scenarioName='Ref_PACA'
 outputFolder=outputPath+scenarioName
 
-plot_capacity(outputFolder,LoadFac=False)
+plot_capacity(outputFolder,LoadFac=True)
 plot_energy(outputFolder)

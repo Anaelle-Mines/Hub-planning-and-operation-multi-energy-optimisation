@@ -11,7 +11,7 @@ outputPath='../Data/output/'
 
 dico_costs={}
 scenarioList=['Ref','woSMR_2030', 'woSMR_2040', 'woSMR_2050']
-scenarioNames=['Ref','wo SMR from 2030','wo SMR from 2040','wo SMR from 2050']
+scenarioNames=['Ref','No SMR from 2030','No SMR from 2040','No SMR from 2050']
 for s in scenarioList:
     outputFolder=outputPath+s+'_PACA'
     dico_costs[s]=extract_costs(scenarioDict[s],outputFolder)

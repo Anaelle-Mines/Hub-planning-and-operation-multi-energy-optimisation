@@ -18,7 +18,7 @@ solver= 'mosek' ## no need for solverpath with mosek.
 #endregion
 
 ScenarioName='Ref'
-outputFolderFr=outputPath+ScenarioName+'_Fr_5'
+outputFolderFr=outputPath+ScenarioName+'_Fr'
 
 # region Electricity data creation (France scenario)
 
