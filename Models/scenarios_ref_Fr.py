@@ -36,7 +36,6 @@ scenarioFr['economicParameters'] = pd.DataFrame({
 )
 
 
-
 def y_ref(y,y_act='middle'):
     if y_act=='beginning':
         return y

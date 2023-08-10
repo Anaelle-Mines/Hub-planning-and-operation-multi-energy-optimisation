@@ -20,12 +20,15 @@ solver= 'mosek' ## no need for solverpath with mosek.
 
 scenarioList = os.sys.argv[1:]
 
+
 for scenarioName in scenarioList :
 
-    outputFolder=outputPath+scenarioName+'_PACA'
-    outputFolderFr=outputPath+'Ref_Fr'
+    outputFolder=outputPath+scenarioName+'_PACA_test'
+    # outputFolderFr=outputPath+'Ref_Fr'
 
     #region PACA calculation
+
+    # print(scenarioDict[scenarioName]['resourceImportPrices']['gazBio'].unique())
 
     print('Building model PACA...')
     model = systemModel_MultiResource_WithStorage(scenarioDict[scenarioName],'PACA',isAbstract=False)
