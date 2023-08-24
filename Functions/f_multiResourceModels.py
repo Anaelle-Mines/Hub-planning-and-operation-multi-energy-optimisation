@@ -133,7 +133,6 @@ def systemModel_MultiResource_WithStorage(scenario, zone,isAbstract=False):
     y0 = yearList[0]
 
 
-
     areaConsumption = inputDict["areaConsumption"].loc[(inputDict["yearList"][1:], slice(None), slice(None))]
     availabilityFactor = inputDict["availabilityFactor"].loc[(inputDict["yearList"][1:], slice(None), slice(None))]
     TechParameters = inputDict["techParameters"].loc[(slice(None),inputDict['convTechList']),slice(None)]

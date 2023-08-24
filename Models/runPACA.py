@@ -17,6 +17,11 @@ scenarioDict.update(scenarioDict_RE)
 
 outputPath='../Data/output/'
 solver= 'mosek' ## no need for solverpath with mosek.
+# solver= 'appsi_highs'
+
+if solver == "appsi_highs":
+    solverpath_folder = "C:\\Users\\anaelle.jodry\\Documents\\highs.mswin64.20230531"
+    sys.path.append(solverpath_folder)
 
 scenarioList = os.sys.argv[1:]
 
